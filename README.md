@@ -1,4 +1,4 @@
-***Hunger NG*** *is a mod for Minetest adding a very customizable and easy to extend hunger system.*
+***Hunger NG*** *is a mod for Luanti adding a very customizable and easy to extend hunger system.*
 
 The mod adds a hunger bar at the position of the breath bar and hides the bar if the breath bar becomes visible so the most important bar is shown without cluttering the UI too much.
 
@@ -16,18 +16,26 @@ Hunger points get subtracted directly from the hunger value instead of being cal
 
 Hunger NG support was added by the following mods.
 
-* [hbSprint](https://forum.minetest.net/viewtopic.php?t=18069) 
+* [hbSprint](https://forum.luanti.org/viewtopic.php?t=18069)
+* [DG SPRINT: HUNGER](https://content.luanti.org/packages/digitalnoob/dg_sprint_hunger_ng/)
 
 Built-in support for the following mods was added.
 
-* [Berry Bushes](https://forum.minetest.net/viewtopic.php?t=14068)
-* [Ethereal NG](https://forum.minetest.net/viewtopic.php?t=14638)
-* [Farming Redo](https://forum.minetest.net/viewtopic.php?t=9019)
-* [Ferns](https://forum.minetest.net/viewtopic.php?id=6921)
-* [HUD bars](https://forum.minetest.net/viewtopic.php?t=11153)
-* [Mobs Redo](https://forum.minetest.net/viewtopic.php?t=9917)
-* [More Trees](https://forum.minetest.net/viewtopic.php?t=4394)
+* [Berry Bushes](https://forum.luanti.org/viewtopic.php?t=14068)
+* [Ethereal NG](https://forum.luanti.org/viewtopic.php?t=14638)
+* [Farming Redo](https://forum.luanti.org/viewtopic.php?t=9019)
+* [Ferns](https://forum.luanti.org/viewtopic.php?id=6921)
+* [HUD bars](https://forum.luanti.org/viewtopic.php?t=11153)
+* [Mobs Redo](https://forum.luanti.org/viewtopic.php?t=9917)
+* [More Trees](https://forum.luanti.org/viewtopic.php?t=4394)
 
 Built-in support for the following games was added.
 
- * [Minetest Game](https://forum.minetest.net/viewtopic.php?t=9724)
+ * [Minetest Game](https://forum.luanti.org/viewtopic.php?t=9724)
+
+## Translations
+
+Missing your language? Feel free to add it!
+
+[![Translation status](https://translate.codeberg.org/widget/linuxdirks-luanti-mods/hunger_ng/287x66-grey.png)](https://translate.codeberg.org/projects/linuxdirks-luanti-mods/hunger_ng)
+

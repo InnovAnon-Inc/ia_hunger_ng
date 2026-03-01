@@ -1,0 +1,145 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2024-12-02 22:17+0100\n"
+"PO-Revision-Date: 2025-07-17 20:08+0000\n"
+"Last-Translator: FromKaniv <fromkaniv@noreply.codeberg.org>\n"
+"Language-Team: Ukrainian <https://translate.codeberg.org/projects/"
+"linuxdirks-luanti-mods/hunger_ng/uk/>\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 5.12.2\n"
+"X-Poedit-KeywordsList: ;S;NS:1,2;core.translate:1c,2;core.translate_n:1c,2,"
+"3\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: .\n"
+
+#: interoperability/hudbars.lua:23
+msgid "Satiation"
+msgstr "Насичення"
+
+#: system/add_hunger_data.lua:47
+msgid "Satiates: @1"
+msgstr "Насичує: @1"
+
+#: system/add_hunger_data.lua:50
+msgid "Deprives: @1"
+msgstr "Позбавляє: @1"
+
+#: system/add_hunger_data.lua:55
+msgid "Heals: @1"
+msgstr "Зцілює: @1"
+
+#: system/add_hunger_data.lua:58
+msgid "Injures: @1"
+msgstr "Шкодить: @1"
+
+#: system/add_hunger_data.lua:64
+msgid "Returns: @1"
+msgstr "Повертає: @1"
+
+#: system/add_hunger_data.lua:72
+msgid "Eating timeout: @1 seconds"
+msgstr "Тайм-аут їди: @1 сек"
+
+#: system/chat_commands.lua:31 system/chat_commands.lua:73
+#: system/chat_commands.lua:113
+msgid "The player @1 is not online"
+msgstr "Гравець @1 не в грі"
+
+#: system/chat_commands.lua:36 system/chat_commands.lua:78
+msgid "Hunger for @1 is disabled"
+msgstr "Голод для @1 вимкнений"
+
+#: system/chat_commands.lua:47
+msgid "Hunger for @1 set to @2"
+msgstr "Голод для @1 встановлено на @2"
+
+#: system/chat_commands.lua:48
+msgid "@1 set your hunger to @2"
+msgstr "@1 встановив твій голод на @2"
+
+#: system/chat_commands.lua:51
+msgid "Hunger set to @1"
+msgstr "Голод встановлено на @1"
+
+#: system/chat_commands.lua:88
+msgid "Hunger for @1 changed by @2"
+msgstr "Голод для @1 змінено на @2"
+
+#: system/chat_commands.lua:89
+msgid "@1 changed your hunger by @2"
+msgstr "@1 змінив твій голод на @2"
+
+#: system/chat_commands.lua:92
+msgid "Hunger changed by @1"
+msgstr "Голод змінено на @1"
+
+#: system/chat_commands.lua:126
+msgid "Hunger for @1 was toggled"
+msgstr "Голод для @1 було перемкнено"
+
+#: system/chat_commands.lua:127
+msgid "@1 toggled your hunger"
+msgstr "@1 перемикнув твій голод"
+
+#: system/chat_commands.lua:130
+msgid "Own hunger was toggled"
+msgstr "Власний голод було переключено"
+
+#: system/chat_commands.lua:162
+msgid "Hunger is disabled"
+msgstr "Голод вимкнено"
+
+#: system/chat_commands.lua:176
+msgid "No player matches your criteria"
+msgstr "Жоден гравець не відповідає твоїм критеріям"
+
+#: system/chat_commands.lua:188
+msgid "run `/help hunger` to show help"
+msgstr "запусти `/help hunger` для допомоги"
+
+#: system/chat_commands.lua:194
+msgid "Player can view and alter own and others hunger values."
+msgstr "Гравець може переглядати і змінювати значення голоду власного та інших."
+
+#: system/chat_commands.lua:201
+msgid "Modify or get hunger values"
+msgstr "Модифікувати або отримати значення голоду"
+
+#: system/chat_commands.lua:240
+msgid "Show own hunger value"
+msgstr "Показати своє значення голоду"
+
+#: system/chat_commands.lua:246
+msgid "Your hunger is disabled"
+msgstr "Твій голод вимкнено"
+
+#: system/chat_commands.lua:248
+msgid "Your hunger value is @1"
+msgstr "Твій голод — @1"
+
+#: system/register_on.lua:76
+msgid "Hunger is disabled for you! Eating normally."
+msgstr "Голод вимкнено для тебе! Їж нормально."
+
+#: system/register_on.lua:88
+msgid "You’re fully satiated already!"
+msgstr "Ти уже повністю насичений!"
+
+#: system/register_on.lua:95
+msgid "You have no inventory space to keep the leftovers."
+msgstr "Ти не маєш місця в інвентарі для збереження залишків."
+
+#: system/register_on.lua:107
+msgid "You’re eating too fast!"
+msgstr "Ти їж надто швидко!"
+
+#: system/register_on.lua:108
+msgid "Wait for eating timeout to end: @1s"
+msgstr "Зачекай, поки тайм-аут їди закінчиться: @1 сек"

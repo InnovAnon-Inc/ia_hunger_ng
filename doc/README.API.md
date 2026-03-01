@@ -6,12 +6,14 @@ Hunger NG provides an API so other mods can have interoperability functionality.
 
 Modders can easily add satiation and health information to their custom food by running the function `add_hunger_data` from the global `hunger_ng` table after they registered their food.
 
-    hunger_ng.add_hunger_data('modname:itemname', {
-        satiates = 2.5,
-        heals = 0,
-        returns = 'mymod:myitem',
-        timeout = 4
-    })
+```Lua
+hunger_ng.add_hunger_data('modname:itemname', {
+    satiates = 2.5,
+    heals = 0,
+    returns = 'mymod:myitem',
+    timeout = 4
+})
+```
 
 Floats are allowed for `satiates` only. Health points and the timeout are always integers. Using food to satiate only is preferred. The item defined in `returns` will be returned when the food is eaten. If there is no space in the inventory the food can’t be eaten.
 
@@ -37,11 +39,11 @@ The function can be used in a globalstep that loops over all players, too.
 
 ```Lua
 local timer = 0
-minetest.register_globalstep(function(dtime)
+core.register_globalstep(function(dtime)
     timer = timer + dtime
     if timer >= 1 then
         timer = 0
-        for _,player in ipairs(minetest.get_connected_players()) do
+        for _,player in ipairs(core.get_connected_players()) do
             if player ~= nil then
                 hunger_ng.alter_hunger(player:get_player_name(), 1, 'because I can')
             end
@@ -192,7 +194,7 @@ The `'setting'` can be either `'enabled'` or `'disabled'`. The follwoing values 
 
 The changes to the hunger effects are not persistent by design. This circumvents issues when effects were changed by a mod that then is unloaded or does not alter the effects after disbaling them.
 
-Mods that need the effects to be persistent between logins need to track the changes on their own and need to disable the effects again **after** the player joined. Hunger NG resets the effect values in a `minetest.register_on_joinplayer` definition. Mods doing the same might cause race conditions.
+Mods that need the effects to be persistent between logins need to track the changes on their own and need to disable the effects again **after** the player joined. Hunger NG resets the effect values in a `core.register_on_joinplayer` definition. Mods doing the same might cause race conditions.
 
 ### Interoperability
 
@@ -212,4 +214,4 @@ The API table provides additional function for interoperability reasons in the s
 
 `settings` is a table containing the Hunger NG configuration. For example: You can check via `hunger_ng.interoperability.settings.hunger_bar.use` if the hunger bar is to be used. There are also timer information and hunger information (maximum hunger, timeout, etc.) available. Changing values here does not change the configuration. The table is solely informational.
 
-`translator` is a preconfigured Minetest translation functionality instance. It can be used like the normal translation function but automatically uses the correct textdomain. Strings that can be translated are seen in the mod’s `locale` directory.
+`translator` is a preconfigured Luanti translation functionality instance. It can be used like the normal translation function but automatically uses the correct textdomain. Strings that can be translated are seen in the mod’s `locale` directory.

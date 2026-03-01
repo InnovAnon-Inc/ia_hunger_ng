@@ -1,11 +1,11 @@
 -- Exit if damage is not enabled and create dummy functions so mods using the
 -- API do not crash the server.
-if not minetest.is_yes(minetest.settings:get('enable_damage')) then
+if not core.is_yes(core.settings:get('enable_damage')) then
     local info = 'Hunger NG is disabled because damage is disabled.'
 
     local call = function (function_name)
-        minetest.log('warning', ('+m tried to use +f but +i'):gsub('%+%a+', {
-            ['+m'] = minetest.get_current_modname(),
+        core.log('warning', ('+m tried to use +f but +i'):gsub('%+%a+', {
+            ['+m'] = core.get_current_modname(),
             ['+f'] = 'hunger_ng.'..function_name..'()',
             ['+i'] = info
         }))
@@ -17,6 +17,13 @@ if not minetest.is_yes(minetest.settings:get('enable_damage')) then
         configure_hunger = function () call('configure_hunger') end,
         get_hunger_information = function () call('get_hunger_information') end,
         hunger_bar_image = '',
+
+        add_poop_data = function () call('add_poop_data') end,
+        alter_poop = function () call('alter_poop') end,
+        configure_poop = function () call('configure_poop') end,
+        --get_poop_information = function () call('get_poop_information') end,
+        poop_bar_image = '',
+
         interoperability = {
             settings = {},
             attributes = {},
@@ -26,14 +33,14 @@ if not minetest.is_yes(minetest.settings:get('enable_damage')) then
         }
     }
 
-    minetest.log('info', '[hunger_ng] '..info)
+    core.log('info', '[hunger_ng] '..info)
     return
 end
 
 
 -- Paths for later use
-local modpath = minetest.get_modpath('hunger_ng')..DIR_DELIM
-local worldpath = minetest.get_worldpath()..DIR_DELIM
+local modpath = core.get_modpath('hunger_ng')..DIR_DELIM
+local worldpath = core.get_worldpath()..DIR_DELIM
 local configpath = worldpath..'_hunger_ng'..DIR_DELIM..'hunger_ng_settings.conf'
 
 
@@ -47,7 +54,7 @@ local worldconfig = Settings(configpath)
 -- returns the requested setting from one of the three sources.
 --
 -- 1. world-specific `./worlds/worldname/_hunger_ng/hunger_ng.conf` file
--- 2. default `minetest.conf` file
+-- 2. server-specific configuration file
 -- 3. the given default value
 --
 -- If 1. is found then it will be returned from there. If 2. is found then it
@@ -58,7 +65,7 @@ local worldconfig = Settings(configpath)
 -- @return string The value for the requested setting
 local get = function (setting, default)
     local parameter = 'hunger_ng_'..setting
-    local global_setting =  minetest.settings:get(parameter)
+    local global_setting =  core.settings:get(parameter)
     local world_specific_setting = worldconfig:get(parameter)
     return world_specific_setting or global_setting or default
 end
@@ -70,11 +77,13 @@ end
 -- use only.
 hunger_ng = {
     functions = {},
-    food_items = {
+    food_items = { -- counters
         satiating = 0,
         starving = 0,
         healing = 0,
         injuring = 0,
+
+	digesting = 0,
     },
     attributes = {
         hunger_bar_id = 'hunger_ng:hunger_bar_id',
@@ -83,31 +92,51 @@ hunger_ng = {
         hunger_disabled = 'hunger_ng:hunger_disabled',
         effect_heal = 'hunger_ng:effect_heal',
         effect_hunger = 'hunger_ng:effect_hunger',
-        effect_starve = 'hunger_ng:effect_starve'
+        effect_starve = 'hunger_ng:effect_starve',
+	
+	poop_bar_id       = 'hunger_ng:poop_bar_id',
+	poop_value        = 'hunger_ng:poop_value',
+	pooping_timestamp = 'hunger_ng:pooping_timestamp',
+	poop_disabled     = 'hunger_ng:poop_disabled',
+	effect_digest     = 'hunger_ng:effect_digest',
     },
     configuration = {
-        debug_mode = minetest.is_yes(get('debug_mode', false)),
+        debug_mode = core.is_yes(get('debug_mode', false)),
         log_prefix = '[hunger_ng] ',
-        translator = minetest.get_translator('hunger_ng')
+        translator = core.get_translator('hunger_ng')
     },
     settings = {
         hunger_bar = {
             image = get('hunger_bar_image', 'hunger_ng_builtin_bread_icon.png'),
-            use = minetest.is_yes(get('use_hunger_bar', true)),
+            use = core.is_yes(get('use_hunger_bar', true)),
             force_builtin_image = get('force_builtin_image', false),
         },
         timers = {
             heal = tonumber(get('timer_heal', 5)),
             starve = tonumber(get('timer_starve', 10)),
             basal_metabolism = tonumber(get('timer_basal_metabolism', 60)),
-            movement = tonumber(get('timer_movement', 0.5))
+            movement = tonumber(get('timer_movement', 0.5)),
+
+	    digest = tonumber(get('timer_digest', 3)),
         },
         hunger = {
             timeout = tonumber(get('hunger_timeout', 0)),
-            persistent = minetest.is_yes(get('hunger_persistent', true)),
+            persistent = core.is_yes(get('hunger_persistent', true)),
             start_with = tonumber(get('hunger_start_with', 20)),
             maximum = tonumber(get('hunger_maximum', 20))
-        }
+        },
+
+        poop_bar = {
+            image = get('poop_bar_image', 'poop_turd.png'),
+            use = core.is_yes(get('use_poop_bar', true)),
+            force_builtin_image = get('force_builtin_image', false),
+        },
+        poop = {
+            timeout = tonumber(get('poop_timeout', 0)),
+            persistent = core.is_yes(get('poop_persistent', true)),
+            start_with = tonumber(get('poop_start_with', 1)),
+            maximum = tonumber(get('poop_maximum', 20))
+        },
     },
     effects = {
         heal = {
@@ -117,9 +146,15 @@ hunger_ng = {
         starve = {
             below = tonumber(get('starve_below', 1)),
             amount = tonumber(get('starve_amount', 1)),
-            die = minetest.is_yes(get('starve_die', false))
+            die = core.is_yes(get('starve_die', false))
         },
-        disabled_attribute = 'hunger_ng:hunger_disabled'
+        disabled_attribute = 'hunger_ng:hunger_disabled',
+
+	digest = {
+            above = tonumber(get('poop_above', 19)),
+            amount = tonumber(get('poop_amount', 1)),
+            below = tonumber(get('poop_below', 5)), -- minimum amount to make a turd
+	},
     },
     costs = {
         base = tonumber(get('cost_base', 0.1)),
@@ -142,7 +177,7 @@ dofile(modpath..'system'..DIR_DELIM..'interoperability.lua')
 -- Log debug mode warning
 if hunger_ng.configuration.debug_mode then
     local log_prefix = hunger_ng.configuration.log_prefix
-    minetest.log('warning', log_prefix..'Mod loaded with debug mode enabled!')
+    core.log('warning', log_prefix..'Mod loaded with debug mode enabled!')
 end
 
 
@@ -150,11 +185,16 @@ end
 -- an API-like global table for other mods to utilize.
 local api_functions = {
     add_hunger_data = hunger_ng.functions.add_hunger_data,
+    --add_poop_data = hunger_ng.functions.add_poop_data,
     alter_hunger = hunger_ng.functions.alter_hunger,
+    alter_poop = hunger_ng.functions.alter_poop,
     configure_hunger = hunger_ng.functions.configure_hunger,
+    configure_poop = hunger_ng.functions.configure_poop,
     set_effect = hunger_ng.set_effect,
     get_hunger_information = hunger_ng.functions.get_hunger_information,
+    --get_poop_information = hunger_ng.functions.get_poop_information,
     hunger_bar_image = hunger_ng.settings.hunger_bar.image,
+    poop_bar_image = hunger_ng.settings.poop_bar.image,
     food_items = hunger_ng.food_items,
     interoperability = {
         settings = hunger_ng.settings,
@@ -162,7 +202,9 @@ local api_functions = {
         translator = hunger_ng.configuration.translator,
         get_data = hunger_ng.functions.get_data,
         set_data = hunger_ng.functions.set_data
-    }
+    },
+
+    poop_maximum = hunger_ng.settings.poop.maximum,
 }
 
 

@@ -1,0 +1,146 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2024-12-02 22:17+0100\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Dirk <spam@0x7be.de>\n"
+"Language-Team: \n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-KeywordsList: ;S;NS:1,2;core.translate:1c,2;core."
+"translate_n:1c,2,3\n"
+"X-Poedit-Basepath: ..\n"
+"X-Generator: Poedit 3.4.2\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: .\n"
+
+#: interoperability/hudbars.lua:23
+msgid "Satiation"
+msgstr "Sättigung"
+
+#: system/add_hunger_data.lua:47
+msgid "Satiates: @1"
+msgstr "Sättigt: @1"
+
+#: system/add_hunger_data.lua:50
+msgid "Deprives: @1"
+msgstr "Entzieht: @1"
+
+#: system/add_hunger_data.lua:55
+msgid "Heals: @1"
+msgstr "Heilt: @1"
+
+#: system/add_hunger_data.lua:58
+msgid "Injures: @1"
+msgstr "Verletzt: @1"
+
+#: system/add_hunger_data.lua:64
+msgid "Returns: @1"
+msgstr "Rückgabe: @1"
+
+#: system/add_hunger_data.lua:72
+msgid "Eating timeout: @1 seconds"
+msgstr "Verzehrpause: @1 Sekunden"
+
+#: system/chat_commands.lua:31 system/chat_commands.lua:73
+#: system/chat_commands.lua:113
+msgid "The player @1 is not online"
+msgstr "Der Spieler @1 ist nicht online"
+
+#: system/chat_commands.lua:36 system/chat_commands.lua:78
+msgid "Hunger for @1 is disabled"
+msgstr "Hunger ist für @1 deaktiviert"
+
+#: system/chat_commands.lua:47
+msgid "Hunger for @1 set to @2"
+msgstr "Hunger für @1 auf @2 gesetzt"
+
+#: system/chat_commands.lua:48
+msgid "@1 set your hunger to @2"
+msgstr "Hungerwert wurde von @1 auf @2 gesetzt"
+
+#: system/chat_commands.lua:51
+msgid "Hunger set to @1"
+msgstr "Hungerwert auf @1 gesetzt"
+
+#: system/chat_commands.lua:88
+msgid "Hunger for @1 changed by @2"
+msgstr "Hunger für @1 auf @2 gesetzt"
+
+#: system/chat_commands.lua:89
+msgid "@1 changed your hunger by @2"
+msgstr "Hungerwert wurde von @1 um @2 verändert"
+
+#: system/chat_commands.lua:92
+msgid "Hunger changed by @1"
+msgstr "Hungerwert um @1 verändert"
+
+#: system/chat_commands.lua:126
+msgid "Hunger for @1 was toggled"
+msgstr "Hunger für @1 wurde umgeschaltet"
+
+#: system/chat_commands.lua:127
+msgid "@1 toggled your hunger"
+msgstr "@1 hat deinen Hunger umgeschaltet"
+
+#: system/chat_commands.lua:130
+msgid "Own hunger was toggled"
+msgstr "Eigener Hunger wurde umgeschaltet"
+
+#: system/chat_commands.lua:162
+msgid "Hunger is disabled"
+msgstr "Hunger ist deaktiviert"
+
+#: system/chat_commands.lua:176
+msgid "No player matches your criteria"
+msgstr "Keinen passenden Spieler gefunden"
+
+#: system/chat_commands.lua:188
+msgid "run `/help hunger` to show help"
+msgstr "Für Hilfe `/help hunger` ausführen"
+
+#: system/chat_commands.lua:194
+msgid "Player can view and alter own and others hunger values."
+msgstr ""
+"Spieler kann eigene und andere Hungerwerte anzeigen und "
+"verändern."
+
+#: system/chat_commands.lua:201
+msgid "Modify or get hunger values"
+msgstr "Hungerwerte verändern oder anzeigen"
+
+#: system/chat_commands.lua:240
+msgid "Show own hunger value"
+msgstr "Eigenen Hungerwert anzeigen"
+
+#: system/chat_commands.lua:246
+msgid "Your hunger is disabled"
+msgstr "Eigener Hunger ist deaktiviert"
+
+#: system/chat_commands.lua:248
+msgid "Your hunger value is @1"
+msgstr "Eigener Hungerwert ist @1"
+
+#: system/register_on.lua:76
+msgid "Hunger is disabled for you! Eating normally."
+msgstr ""
+"Eigene Hungerfunktionen sind deaktiviert. Essen funktioniert "
+"normal."
+
+#: system/register_on.lua:88
+msgid "You’re fully satiated already!"
+msgstr "Bereits vollständig gesättigt!"
+
+#: system/register_on.lua:95
+msgid "You have no inventory space to keep the leftovers."
+msgstr "Kein Inventarplatz frei, um die Reste abzulegen."
+
+#: system/register_on.lua:107
+msgid "You’re eating too fast!"
+msgstr "Zu schnell gegessen!"
+
+#: system/register_on.lua:108
+msgid "Wait for eating timeout to end: @1s"
+msgstr "Ende des Timeouts abwarten: @1s"

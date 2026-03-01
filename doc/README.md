@@ -8,7 +8,7 @@ Read more about how to use the API in the [API documentation file](README.API.md
 
 ## Configuration
 
-The mod allows a lot of configuration. All of the following attributes are editable either via the advanced configuration within the client or by manually adding the options to `minetest.conf`.
+The mod allows a lot of configuration. All of the following attributes are editable either via the advanced configuration within the client or by manually adding the options to the configuration file that is used for the server.
 
 Check out the [configuration README](README.Configuration.md) for more details.
 

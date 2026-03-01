@@ -1,7 +1,7 @@
 -- More Trees!
 --
 -- Author  VanessaE
--- Forums  https://forum.minetest.net/viewtopic.php?t=4394
+-- Forums  https://forum.luanti.org/viewtopic.php?t=4394
 -- VCS     https://gitlab.com/VanessaE/moretrees
 
 

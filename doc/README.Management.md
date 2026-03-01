@@ -17,6 +17,13 @@ The first example sets the hunger value of player “Foobar” to 10 (5 breads).
 
 The two last examples either return a list of all currently online player’s hunger values or the hunger value of the given player.
 
+You can also toggle the hunger status for yourself or for a given player.
+
+    /hunger toggle
+    /hunger toggle Foobar
+
+The first example toggles the own hunger status. The second example toggles the hunger status of the player “Foobar”.
+
 ## Personal information chat command
 
 Players that have the `interact` permission can query their own hunger value as numeric information using the `/myhunger` chat command

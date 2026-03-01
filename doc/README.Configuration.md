@@ -1,8 +1,8 @@
 # Configuration
 
-The mod allows a lot of configuration. All of the following attributes are editable on global level either via the advanced configuration within the client or by manually adding the options to `minetest.conf`.
+The mod allows a lot of configuration. All of the following attributes are editable on global level either via the advanced configuration within the client or by manually adding the options to the configuration file that is used for the server.
 
-In addition to the global settings in `minetest.conf` the values can also be stored in a world-specific configuration file located at `./worlds/worldname/_hunger_ng/hunger_ng_settings.conf`. Settings in this file overwrite the global settings and/or default values.
+In addition to the settings in the server-specific configuration file, the values can also be stored in a world-specific configuration file located at `./worlds/worldname/_hunger_ng/hunger_ng_settings.conf`. Settings in this file overwrite the global settings and/or default values.
 
 ## Healing and starving
 

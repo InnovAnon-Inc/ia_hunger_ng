@@ -7,8 +7,9 @@ local s = hunger_ng.settings
 local S = hunger_ng.configuration.translator
 
 
--- Localize Minetest
-local registered_items = minetest.registered_items
+-- Localize Luanti
+local registered_items = core.registered_items
+local override_item = core.override_item
 
 
 -- Add custom _hunger_ng attribute to items
@@ -21,6 +22,7 @@ local registered_items = minetest.registered_items
 --     {
 --         heals = n,
 --         satiates = n,
+--         digests = n|nil,
 --         returns = 'id'
 --     }
 --
@@ -42,12 +44,23 @@ hunger_ng.functions.add_hunger_data = function (id, data)
     local returns = data.returns or false
     local timeout = data.timeout or s.hunger.timeout
 
+    local digests = data.digests
+    if digests == nil then
+        digests = math.abs(satiates)
+    end
+
     if satiates > 0 then
         info = info..'\n'..S('Satiates: @1', satiates)
         hunger_ng.food_items.satiating = hunger_ng.food_items.satiating + 1
     elseif satiates < 0 then
         info = info..'\n'..S('Deprives: @1', math.abs(satiates))
         hunger_ng.food_items.starving = hunger_ng.food_items.starving + 1
+    end
+
+    assert(digests >= 0)
+    if digests > 0 then
+        info = info..'\n'..S('Digests: @1', digests)
+        hunger_ng.food_items.digesting = hunger_ng.food_items.digesting + 1
     end
 
     if heals > 0 then
@@ -71,7 +84,7 @@ hunger_ng.functions.add_hunger_data = function (id, data)
         info = info..'\n'..S('Eating timeout: @1 seconds', timeout)
     end
 
-    minetest.override_item(id, {
+    override_item(id, {
         description = item_data.description..info,
         _hunger_ng = data
     })

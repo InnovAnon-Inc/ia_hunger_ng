@@ -1,7 +1,7 @@
 -- Ferns
 --
 -- Author  Mossmanikin
--- Forums  https://forum.minetest.net/viewtopic.php?id=6921
+-- Forums  https://forum.luanti.org/viewtopic.php?id=6921
 -- VCS     https://github.com/Mossmanikin/ferns
 
 

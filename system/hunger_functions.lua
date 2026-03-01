@@ -6,8 +6,10 @@ local f = hunger_ng.functions
 local s = hunger_ng.settings
 local S = hunger_ng.configuration.translator
 
--- Localize Minetest
-local minetest_log = minetest.log
+-- Localize Luanti
+local core_log = core.log
+local get_player_by_name = core.get_player_by_name
+local get_current_modname = core.get_current_modname
 
 
 -- Gets and returns the given player-related data
@@ -21,7 +23,7 @@ local minetest_log = minetest.log
 -- @param as_string  Optionally return the value of the field as string
 -- @return bool|string|number
 local get_data = function (playername, field, as_string)
-    local player = minetest.get_player_by_name(playername)
+    local player = get_player_by_name(playername)
     if not player then return false end
 
     local player_meta = player:get_meta()
@@ -44,7 +46,7 @@ end
 -- @param value      The value to set the field to
 -- @return void
 local set_data = function (playername, field, value)
-    local player = minetest.get_player_by_name(playername)
+    local player = get_player_by_name(playername)
     if not player then return false end
     local player_meta = player:get_meta()
     player_meta:set_string(field, value)
@@ -72,7 +74,7 @@ end
 -- @return void
 local debug_log = function (playername, what, old, new, change, reason)
     if not c.debug_mode then return end
-    local timestamp = 24*60*minetest.get_timeofday()
+    local timestamp = 24 * 60 * core.get_timeofday()
     local h = tostring((math.floor(timestamp/60) % 60))
     local m = tostring((math.floor(timestamp) % 60))
     local text = ('t: +t, p: +p, w: +w, n: +n, d: +o + +c, r: +r'):gsub('+.', {
@@ -84,7 +86,7 @@ local debug_log = function (playername, what, old, new, change, reason)
         ['+c'] = change,
         ['+r'] = reason or 'n/a'
     })
-    minetest_log('action', c.log_prefix..text)
+    core_log('action', c.log_prefix..text)
 end
 
 
@@ -97,10 +99,17 @@ end
 -- @param playername The name of the player to check
 -- @return bool
 local hunger_disabled = function (playername)
-    local interact = minetest.check_player_privs(playername, { interact=true })
+    local interact = core.check_player_privs(playername, { interact=true })
     local disabled = get_data(playername, a.hunger_disabled)
-    if minetest.is_yes(disabled) or not interact then return true end
+    if core.is_yes(disabled) or not interact then return true end
     return false
+end
+local poop_disabled = function (playername)
+    local interact = core.check_player_privs(playername, { interact=true })
+    local disabled = get_data(playername, a.poop_disabled)
+    if core.is_yes(disabled) or not interact then return true end
+    --return false
+    return hunger_disabled(playername)
 end
 
 
@@ -124,6 +133,15 @@ local configure_hunger = function (playername, action)
         set_data(playername, a.hunger_disabled, 1)
     end
 end
+local configure_poop = function (playername, action)
+    if not action then return end
+
+    if action == 'enable' then
+        set_data(playername, a.poop_disabled, 0)
+    elseif action == 'disable' then
+        set_data(playername, a.poop_disabled, 1)
+    end
+end
 
 
 -- Get the current hunger information
@@ -134,16 +152,19 @@ end
 -- @param playername The name of the player whose hunger value is to be get
 -- @return table     The table as described
 hunger_ng.functions.get_hunger_information = function (playername)
-    local player = minetest.get_player_by_name(playername)
+    local player = get_player_by_name(playername)
     if not player then return { invalid = true, player_name = playername } end
 
     local last_eaten = get_data(playername, a.eating_timestamp) or 0
+    local last_pooped = get_data(playername, a.pooping_timestamp) or 0
     local current_hunger = get_data(playername, a.hunger_value)
+    local current_poop = get_data(playername, a.poop_value)
     local player_properties = player:get_properties()
 
     local e_heal = get_data(playername, a.effect_heal, true) == 'enabled'
     local e_hunger = get_data(playername, a.effect_hunger, true) == 'enabled'
     local e_starve = get_data(playername, a.effect_starve, true) == 'enabled'
+    local e_digest = get_data(playername, a.effect_digest, true) == 'enabled'
 
     return {
         player_name = playername,
@@ -152,12 +173,14 @@ hunger_ng.functions.get_hunger_information = function (playername)
             ceiled = math.ceil(current_hunger),
             disabled = hunger_disabled(playername),
             exact = current_hunger,
-            enabled = e_heal
+            enabled = e_heal,
         },
         maximum = {
             hunger = s.hunger.maximum,
             health = player_properties.hp_max,
-            breath = player_properties.breath_max
+            breath = player_properties.breath_max,
+
+	    poop   = s.poop.maximum,
         },
         effects = {
             starving = {
@@ -169,11 +192,26 @@ hunger_ng.functions.get_hunger_information = function (playername)
                 status = current_hunger > e.heal.above
             },
             current_breath = player:get_breath(),
+
+	    digesting = {
+                enabled = e_digest,
+		status  = current_poop > e.poop.above,
+            },
         },
         timestamps = {
             last_eaten = tonumber(last_eaten),
-            request = tonumber(os.time())
-        }
+            request = tonumber(os.time()),
+
+	    last_pooped = tonumber(last_pooped),
+        },
+
+        poop = {
+            floored = math.floor(current_poop),
+            ceiled = math.ceil(current_poop),
+            disabled = poop_disabled(playername),
+            exact = current_poop,
+            enabled = e_digest,
+        },
     }
 end
 
@@ -183,7 +221,7 @@ end
 -- @param playername The name of a player whose health value should be altered
 -- @param change     The health change (can be negative to damage the player)
 hunger_ng.functions.alter_health = function (playername, change, reason)
-    local player = minetest.get_player_by_name(playername)
+    local player = get_player_by_name(playername)
     local hp_max = player:get_properties().hp_max
 
     if player == nil then return end
@@ -205,7 +243,7 @@ end
 -- @param playername The name of a player whose hunger value should be altered
 -- @param change     The hunger change (can be negative to make player hungry)
 hunger_ng.functions.alter_hunger = function (playername, change, reason)
-    local player = minetest.get_player_by_name(playername)
+    local player = get_player_by_name(playername)
 
     if player == nil then return end
     if hunger_disabled(playername) then return end
@@ -225,6 +263,59 @@ hunger_ng.functions.alter_hunger = function (playername, change, reason)
 
     debug_log(playername, 'hunger', current_hunger, new_hunger, change, reason)
 end
+hunger_ng.functions.alter_poop = function (playername, change, reason)
+    local player = get_player_by_name(playername)
+
+    if player == nil then return end
+    if poop_disabled(playername) then return end
+
+    local current_poop = get_data(playername, a.poop_value)
+    local new_poop = current_poop + change
+    local bar_id = get_data(playername, a.poop_bar_id)
+
+    if new_poop > s.poop.maximum then new_poop = s.poop.maximum end
+    if new_poop < 0 then new_poop = 0 end
+
+    set_data(playername, a.poop_value, new_poop)
+
+    if s.poop_bar.use then
+        player:hud_change(bar_id, 'number', math.ceil(new_poop))
+    end
+
+    debug_log(playername, 'poop', current_poop, new_poop, change, reason)
+end
+hunger_ng.functions.alter_poop_soon = function (playername, change, reason, dt)
+	minetest.after(dt, function()
+		f.alter_poop(playername, change, reason)
+	end)
+end
+hunger_ng.functions.defecate = function(playername, change, reason)
+	assert(change == nil or change > 0)
+	local current_poop = get_data(playername, a.poop_value)
+--	if current_poop <= 0 then
+--		minetest.chat_send_player(player, "Your bowels are empty!")
+--		return
+--	end
+	assert(current_poop > 0)
+	if change == nil then
+		change = current_poop
+	end
+	assert(change > 0)
+	f.alter_poop(playername, -change, reason)
+	if change < current_poop then -- shit yourself
+		ia_pooper.play_rumble_sound(playername)
+		return
+	end
+	assert(change >= current_poop)
+	local poop_below = e.digest.below
+	if change < poop_below then -- not enough
+		ia_pooper.play_rumble_sound(playername)
+		return
+	end
+	assert(change >= poop_below)
+	ia_pooper.defecate(playername)
+end
+
 
 
 -- Set hunger effect metadata
@@ -251,9 +342,9 @@ hunger_ng.set_effect = function (playername, effect, setting)
 
     -- Warn in server log when a mod tries to configure an unknown effect
     if attribute == false then
-        minetest_log('warning', ('+t +m tried to set +v for +p'):gsub('+.', {
+        core_log('warning', ('+t +m tried to set +v for +p'):gsub('+.', {
             ['+t'] = '[hunger_ng]',
-            ['+m'] = minetest.get_current_modname(),
+            ['+m'] = get_current_modname(),
             ['+v'] = 'unknown effect '..effect,
             ['+p'] = playername
         }))
@@ -263,9 +354,9 @@ hunger_ng.set_effect = function (playername, effect, setting)
     -- Set the attribute according to what the mod wants and log that setting
     if allowed_values[setting] == true then
         set_data(playername, attribute, setting)
-        minetest_log('verbose', ('+t +m sets +a to +v for +p'):gsub('+.', {
+        core_log('verbose', ('+t +m sets +a to +v for +p'):gsub('+.', {
             ['+t'] = '[hunger_ng]',
-            ['+m'] = minetest.get_current_modname(),
+            ['+m'] = get_current_modname(),
             ['+a'] = attribute,
             ['+v'] = setting,
             ['+p'] = playername
@@ -279,3 +370,6 @@ hunger_ng.functions.get_data = get_data
 hunger_ng.functions.set_data = set_data
 hunger_ng.functions.hunger_disabled = hunger_disabled
 hunger_ng.functions.configure_hunger = configure_hunger
+
+hunger_ng.functions.poop_disabled = poop_disabled
+hunger_ng.functions.configure_poop = configure_poop

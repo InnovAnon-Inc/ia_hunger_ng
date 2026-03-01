@@ -1,7 +1,7 @@
 -- Ethereal
 --
 -- Author  TenPlus1
--- Forums  https://forum.minetest.net/viewtopic.php?t=14638
+-- Forums  https://forum.luanti.org/viewtopic.php?t=14638
 -- VCS     https://notabug.org/TenPlus1/ethereal
 
 

@@ -1,7 +1,7 @@
 -- Berry Bushes
 --
 -- Author  jordan4ibanez
--- Forums  https://forum.minetest.net/viewtopic.php?t=14068
+-- Forums  https://forum.luanti.org/viewtopic.php?t=14068
 -- VCS     No VCS provided
 
 

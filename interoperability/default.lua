@@ -1,7 +1,7 @@
 -- default (comes with Minetest Game)
 --
--- Author  Various Minetest developers and contributors
--- Forums  https://forum.minetest.net/viewtopic.php?t=9724
+-- Author  Various Minetest Game developers and contributors
+-- Forums  https://forum.luanti.org/viewtopic.php?t=9724
 -- VCS     https://github.com/minetest/minetest_game
 
 

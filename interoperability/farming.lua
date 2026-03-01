@@ -1,7 +1,7 @@
 -- Farming Redo
 --
 -- Author  TenPlus1
--- Forums  https://forum.minetest.net/viewtopic.php?t=9019
+-- Forums  https://forum.luanti.org/viewtopic.php?t=9019
 -- VCS     https://notabug.org/TenPlus1/Farming
 
 local add = hunger_ng.add_hunger_data
