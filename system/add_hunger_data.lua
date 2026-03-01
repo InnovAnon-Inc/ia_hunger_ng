@@ -20,10 +20,11 @@ local override_item = core.override_item
 -- The data table has to be the following.
 --
 --     {
---         heals = n,
+--         heals    = n,
 --         satiates = n,
---         digests = n|nil,
---         returns = 'id'
+--         digests  = n|nil,
+--         rests    = n,
+--         returns  = 'id'
 --     }
 --
 -- Where n is a number (can be negative to damage the player or make the
@@ -44,10 +45,11 @@ hunger_ng.functions.add_hunger_data = function (id, data)
     local returns = data.returns or false
     local timeout = data.timeout or s.hunger.timeout
 
-    local digests = data.digests
+    local digests  = data.digests
     if digests == nil then
-        digests = math.abs(satiates)
+        digests    = math.abs(satiates)
     end
+    local rests    = data.rests or 0
 
     if satiates > 0 then
         info = info..'\n'..S('Satiates: @1', satiates)
@@ -61,6 +63,14 @@ hunger_ng.functions.add_hunger_data = function (id, data)
     if digests > 0 then
         info = info..'\n'..S('Digests: @1', digests)
         hunger_ng.food_items.digesting = hunger_ng.food_items.digesting + 1
+    end
+
+    if rests > 0 then
+        info = info..'\n'..S('Restores: @1', rests)
+        hunger_ng.food_items.resting = hunger_ng.food_items.resting + 1
+    elseif rests < 0 then
+        info = info..'\n'..S('Exhausts: @1', math.abs(rests))
+        hunger_ng.food_items.exhausting = hunger_ng.food_items.exhausting + 1
     end
 
     if heals > 0 then

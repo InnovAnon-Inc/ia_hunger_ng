@@ -82,7 +82,37 @@ local set_poop = function (name, value, caller)
         message = caller..' sets own poop to '..value
     end
 
-    log('action', '[pooper_ng] '..message)
+    log('action', '[hunger_ng] '..message)
+end
+local set_sleep = function (name, value, caller)
+    local message = ''
+
+    if not get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.sleep_disabled(name) then
+        chat_send(caller, S('Sleep for @1 is disabled', name))
+        return
+    end
+
+    if value > s.sleep.maximum then value = s.sleep.maximum end
+    if value < 0 then value = 0 end
+
+    f.alter_sleep(name, -s.sleep.maximum, 'chat set 0')
+    f.alter_sleep(name, value, 'chat set target')
+
+    if name ~= caller then
+        chat_send(caller, S('Sleep for @1 set to @2', name, value))
+        chat_send(name, S('@1 set your sleep to @2', caller, value))
+        message = caller..' sets sleep for '..name..' to '..value
+    else
+        chat_send(caller, S('Sleep set to @1', value))
+        message = caller..' sets own sleep to '..value
+    end
+
+    log('action', '[hunger_ng] '..message)
 end
 
 
@@ -152,7 +182,36 @@ local change_poop = function (name, value, caller)
         message = caller..' changes own poop by '..value
     end
 
-    log('action', '[pooper_ng] '..message)
+    log('action', '[hunger_ng] '..message)
+end
+local change_sleep = function (name, value, caller)
+    local message = ''
+
+    if not get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.sleep_disabled(name) then
+        chat_send(caller, S('Sleep for @1 is disabled', name))
+        return
+    end
+
+    if value > s.sleep.maximum then value = s.sleep.maximum end
+    if value < -s.sleep.maximum then value = -s.sleep.maximum end
+
+    f.alter_sleep(name, value, 'chat change')
+
+    if name ~= caller then
+        chat_send(caller, S('Sleep for @1 changed by @2', name, value))
+        chat_send(name, S('@1 changed your sleep by @2', caller, value))
+        message = caller..'changes sleep for '..name..' by '..value
+    else
+        chat_send(caller, S('Sleep changed by @1', value))
+        message = caller..' changes own sleep by '..value
+    end
+
+    log('action', '[hunger_ng] '..message)
 end
 
 
@@ -203,10 +262,10 @@ local toggle_poop = function (name, value, caller)
     end
 
     if f.poop_disabled(name) then
-        pooper_ng.configure_poop(name, 'enable')
+        hunger_ng.configure_poop(name, 'enable')
         action = 'enabled'
     else
-        pooper_ng.configure_poop(name, 'disable')
+        hunger_ng.configure_poop(name, 'disable')
         action = 'disabled'
     end
 
@@ -219,7 +278,36 @@ local toggle_poop = function (name, value, caller)
         message = caller..' '..action..' own poop'
     end
 
-    log('action', '[pooper_ng] '..message)
+    log('action', '[hunger_ng] '..message)
+end
+local toggle_sleep = function (name, value, caller)
+    local message = ''
+    local action = ''
+    local name = name == '' and caller or name
+
+    if not get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.sleep_disabled(name) then
+        hunger_ng.configure_sleep(name, 'enable')
+        action = 'enabled'
+    else
+        hunger_ng.configure_sleep(name, 'disable')
+        action = 'disabled'
+    end
+
+    if name ~= caller then
+        chat_send(caller, S('Sleep for @1 was toggled', name))
+        chat_send(name, S('@1 toggled your sleep', caller))
+        message = caller..' '..action..' sleep for '..name
+    else
+        chat_send(caller, S('Own sleep was toggled'))
+        message = caller..' '..action..' own sleep'
+    end
+
+    log('action', '[hunger_ng] '..message)
 end
 
 
@@ -288,7 +376,39 @@ local get_poop = function(name, caller)
                 message = caller..' gets poop value for '..player_name
             end
 
-            log('action', '[pooper_ng] '..message)
+            log('action', '[hunger_ng] '..message)
+        end
+    end
+
+    if #name == 0 then
+        chat_send(caller, S('No player matches your criteria'))
+    end
+end
+local get_sleep = function(name, caller)
+    local message = ''
+
+    if name == '' then name = get_connected_players()
+    else name = { get_player_by_name(name) } end
+
+    for _,player in pairs(name) do
+        if player:is_player() then
+            local player_name = player:get_player_name()
+            local player_sleep = f.get_data(player_name, a.sleep_value)
+            local sleep_disabled = f.sleep_disabled(player_name)
+
+            if not sleep_disabled then
+                chat_send(caller, player_name..': '..player_sleep)
+            else
+                chat_send(caller, player_name..': '..S('Sleep is disabled'))
+            end
+
+            if player_name == caller then
+                message = caller..' gets own sleep value'
+            else
+                message = caller..' gets sleep value for '..player_name
+            end
+
+            log('action', '[hunger_ng] '..message)
         end
     end
 
@@ -388,6 +508,42 @@ core.register_chatcommand('poop', {
         else show_help(caller) end
     end
 })
+core.register_chatcommand('sleep', {
+    params = '<set/change/get/toggle> <name> <value>',
+    description = S('Modify or get sleep values'),
+    privs = { manage_hunger = true },
+    func = function (caller, parameters)
+        local pt= {}
+        for p in parameters:gmatch("%S+") do table.insert(pt, p) end
+        local action = pt[1] or ''
+        local name = pt[2] or ''
+        local value = pt[3] or ''
+
+        -- Name parameter missing
+        if not player_exists(name) and tonumber(name) and value == '' then
+            value = name
+            name = caller
+        end
+
+        -- Convert value to number or print error message when trying to set
+        -- a value but no proper value was given
+        if tonumber(value) then
+            value = tonumber(value)
+        else
+            if action ~= 'get' and action ~= 'toggle' then
+                show_help(caller)
+                return
+            end
+        end
+
+        -- Execute the corresponding function for the defined action
+        if     action == 'set' then set_sleep(name, value, caller)
+        elseif action == 'change' then change_sleep(name, value, caller)
+        elseif action == 'get' then get_sleep(name, caller)
+        elseif action == 'toggle' then toggle_sleep(name, value, caller)
+        else show_help(caller) end
+    end
+})
 
 
 -- Personal information chat command
@@ -419,6 +575,20 @@ core.register_chatcommand('mypoop', {
         end
     end
 })
+core.register_chatcommand('mysleep', {
+    params = 'name',
+    description = S('Show own sleep value'),
+    privs = { interact = true },
+    func = function (caller)
+        local player_sleep = f.get_data(caller, a.sleep_value)
+        local sleep_disabled = f.sleep_disabled(caller)
+        if sleep_disabled then
+            chat_send(caller, S('Your sleep is disabled'))
+        else
+            chat_send(caller, S('Your sleep value is @1', player_sleep))
+        end
+    end
+})
 
 
 core.register_chatcommand('defecate', {
@@ -434,4 +604,4 @@ core.register_chatcommand('defecate', {
 		f.defecate(caller, nil, 'potty trained')
 	end,
 })
-
+-- TODO allow sleep without bed? i.e., may cause injury in general, and also temperature damage

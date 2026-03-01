@@ -111,6 +111,12 @@ local poop_disabled = function (playername)
     --return false
     return hunger_disabled(playername)
 end
+local sleep_disabled = function (playername)
+    local interact = core.check_player_privs(playername, { interact=true })
+    local disabled = get_data(playername, a.sleep_disabled)
+    if core.is_yes(disabled) or not interact then return true end
+    return false
+end
 
 
 -- Configures hunger effects for the player
@@ -142,6 +148,15 @@ local configure_poop = function (playername, action)
         set_data(playername, a.poop_disabled, 1)
     end
 end
+local configure_sleep = function (playername, action)
+    if not action then return end
+
+    if action == 'enable' then
+        set_data(playername, a.sleep_disabled, 0)
+    elseif action == 'disable' then
+        set_data(playername, a.sleep_disabled, 1)
+    end
+end
 
 
 -- Get the current hunger information
@@ -156,15 +171,18 @@ hunger_ng.functions.get_hunger_information = function (playername)
     if not player then return { invalid = true, player_name = playername } end
 
     local last_eaten = get_data(playername, a.eating_timestamp) or 0
-    local last_pooped = get_data(playername, a.pooping_timestamp) or 0
+    local last_pooped    = get_data(playername, a.pooping_timestamp) or 0
+    local last_slept     = get_data(playername, a.sleeping_timestamp) or 0
     local current_hunger = get_data(playername, a.hunger_value)
-    local current_poop = get_data(playername, a.poop_value)
+    local current_poop   = get_data(playername, a.poop_value)
+    local current_sleep  = get_data(playername, a.sleep_value)
     local player_properties = player:get_properties()
 
     local e_heal = get_data(playername, a.effect_heal, true) == 'enabled'
     local e_hunger = get_data(playername, a.effect_hunger, true) == 'enabled'
     local e_starve = get_data(playername, a.effect_starve, true) == 'enabled'
     local e_digest = get_data(playername, a.effect_digest, true) == 'enabled'
+    local e_sleep  = get_data(playername, a.effect_sleep,  true) == 'enabled'
 
     return {
         player_name = playername,
@@ -181,6 +199,7 @@ hunger_ng.functions.get_hunger_information = function (playername)
             breath = player_properties.breath_max,
 
 	    poop   = s.poop.maximum,
+	    sleep  = s.sleep.maximum,
         },
         effects = {
             starving = {
@@ -197,20 +216,32 @@ hunger_ng.functions.get_hunger_information = function (playername)
                 enabled = e_digest,
 		status  = current_poop > e.poop.above,
             },
+	    sleeping  = {
+                enabled = e_sleep,
+		status  = current_sleep < e.sleep.below,
+            },
         },
         timestamps = {
             last_eaten = tonumber(last_eaten),
             request = tonumber(os.time()),
 
 	    last_pooped = tonumber(last_pooped),
+	    last_slept  = tonumber(last_slept),
         },
 
-        poop = {
-            floored = math.floor(current_poop),
-            ceiled = math.ceil(current_poop),
+        poop  = {
+            floored  = math.floor(current_poop),
+            ceiled   = math.ceil(current_poop),
             disabled = poop_disabled(playername),
-            exact = current_poop,
-            enabled = e_digest,
+            exact    = current_poop,
+            enabled  = e_digest,
+        },
+        sleep = {
+            floored  = math.floor(current_sleep),
+            ceiled   = math.ceil(current_sleep),
+            disabled = sleep_disabled(playername),
+            exact    = current_sleep,
+            enabled  = e_sleep,
         },
     }
 end
@@ -315,6 +346,28 @@ hunger_ng.functions.defecate = function(playername, change, reason)
 	assert(change >= poop_below)
 	ia_pooper.defecate(playername)
 end
+hunger_ng.functions.alter_sleep = function (playername, change, reason)
+    local player = get_player_by_name(playername)
+
+    if player == nil then return end
+    if sleep_disabled(playername) then return end
+
+    local current_sleep = get_data(playername, a.sleep_value)
+    local new_sleep = current_sleep + change
+    local bar_id = get_data(playername, a.sleep_bar_id)
+
+    if new_sleep > s.sleep.maximum then new_sleep = s.sleep.maximum end
+    if new_sleep < 0 then new_sleep = 0 end
+
+    set_data(playername, a.sleep_value, new_sleep)
+
+    if s.sleep_bar.use then
+        player:hud_change(bar_id, 'number', math.ceil(new_sleep))
+    end
+
+    debug_log(playername, 'sleep', current_sleep, new_sleep, change, reason)
+end
+-- TODO allow sleep without bed? i.e., may cause injury in general, and also temperature damage
 
 
 
@@ -371,5 +424,7 @@ hunger_ng.functions.set_data = set_data
 hunger_ng.functions.hunger_disabled = hunger_disabled
 hunger_ng.functions.configure_hunger = configure_hunger
 
-hunger_ng.functions.poop_disabled = poop_disabled
-hunger_ng.functions.configure_poop = configure_poop
+hunger_ng.functions.poop_disabled   = poop_disabled
+hunger_ng.functions.configure_poop  = configure_poop
+hunger_ng.functions.sleep_disabled  = sleep_disabled
+hunger_ng.functions.configure_sleep = configure_sleep

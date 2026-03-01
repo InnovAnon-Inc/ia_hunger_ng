@@ -23,6 +23,7 @@ if not core.is_yes(core.settings:get('enable_damage')) then
         configure_poop = function () call('configure_poop') end,
         --get_poop_information = function () call('get_poop_information') end,
         poop_bar_image = '',
+	-- TODO poop_maximum ?
 
         interoperability = {
             settings = {},
@@ -83,7 +84,9 @@ hunger_ng = {
         healing = 0,
         injuring = 0,
 
-	digesting = 0,
+	digesting  = 0,
+	resting    = 0,
+	exhausting = 0,
     },
     attributes = {
         hunger_bar_id = 'hunger_ng:hunger_bar_id',
@@ -94,11 +97,17 @@ hunger_ng = {
         effect_hunger = 'hunger_ng:effect_hunger',
         effect_starve = 'hunger_ng:effect_starve',
 	
-	poop_bar_id       = 'hunger_ng:poop_bar_id',
-	poop_value        = 'hunger_ng:poop_value',
-	pooping_timestamp = 'hunger_ng:pooping_timestamp',
-	poop_disabled     = 'hunger_ng:poop_disabled',
-	effect_digest     = 'hunger_ng:effect_digest',
+	poop_bar_id        = 'hunger_ng:poop_bar_id',
+	poop_value         = 'hunger_ng:poop_value',
+	pooping_timestamp  = 'hunger_ng:pooping_timestamp',
+	poop_disabled      = 'hunger_ng:poop_disabled',
+	effect_digest      = 'hunger_ng:effect_digest',
+
+	sleep_bar_id       = 'hunger_ng:sleep_bar_id',
+	sleep_value        = 'hunger_ng:sleep_value',
+	sleeping_timestamp = 'hunger_ng:sleeping_timestamp',
+	sleep_disabled     = 'hunger_ng:sleep_disabled',
+	effect_sleep       = 'hunger_ng:effect_sleep',
     },
     configuration = {
         debug_mode = core.is_yes(get('debug_mode', false)),
@@ -118,6 +127,7 @@ hunger_ng = {
             movement = tonumber(get('timer_movement', 0.5)),
 
 	    digest = tonumber(get('timer_digest', 3)),
+	    sleep  = tonumber(get('timer_sleep',  60*60*4)),
         },
         hunger = {
             timeout = tonumber(get('hunger_timeout', 0)),
@@ -126,17 +136,28 @@ hunger_ng = {
             maximum = tonumber(get('hunger_maximum', 20))
         },
 
-        poop_bar = {
-            image = get('poop_bar_image', 'poop_turd.png'),
-            use = core.is_yes(get('use_poop_bar', true)),
+        poop_bar  = {
+            image               = get('poop_bar_image', 'poop_turd.png'),
+            use                 = core.is_yes(get('use_poop_bar', true)),
             force_builtin_image = get('force_builtin_image', false),
         },
-        poop = {
-            timeout = tonumber(get('poop_timeout', 0)),
-            persistent = core.is_yes(get('poop_persistent', true)),
-            start_with = tonumber(get('poop_start_with', 1)),
-            maximum = tonumber(get('poop_maximum', 20))
+        poop      = {
+            timeout             = tonumber(get('poop_timeout', 0)),
+            persistent          = core.is_yes(get('poop_persistent', true)),
+            start_with          = tonumber(get('poop_start_with', 1)),
+            maximum             = tonumber(get('poop_maximum', 20))
         },
+	sleep_bar = {
+            image               = get('sleep_bar_image', 'beds_bed.png'),
+            use                 = core.is_yes(get('use_sleep_bar', true)),
+            force_builtin_image = get('force_builtin_image', false),
+	},
+	sleep     = {
+            timeout             = tonumber(get('sleep_timeout', 0)),
+            persistent          = core.is_yes(get('sleep_persistent', true)),
+            start_with          = tonumber(get('sleep_start_with', 20)),
+            maximum             = tonumber(get('sleep_maximum', 20))
+	},
     },
     effects = {
         heal = {
@@ -150,10 +171,15 @@ hunger_ng = {
         },
         disabled_attribute = 'hunger_ng:hunger_disabled',
 
-	digest = {
-            above = tonumber(get('poop_above', 19)),
+	digest     = {
+            above  = tonumber(get('poop_above', 19)),
             amount = tonumber(get('poop_amount', 1)),
-            below = tonumber(get('poop_below', 5)), -- minimum amount to make a turd
+            below  = tonumber(get('poop_below', 5)), -- minimum amount to make a turd
+	},
+	sleep      = {
+            below  = tonumber(get('exhaust_below', 1)),
+            amount = tonumber(get('exhaust_amount', 1)),
+            die    = core.is_yes(get('exhaust_die', false))
 	},
     },
     costs = {
@@ -188,13 +214,17 @@ local api_functions = {
     --add_poop_data = hunger_ng.functions.add_poop_data,
     alter_hunger = hunger_ng.functions.alter_hunger,
     alter_poop = hunger_ng.functions.alter_poop,
+    alter_sleep = hunger_ng.functions.alter_sleep,
     configure_hunger = hunger_ng.functions.configure_hunger,
     configure_poop = hunger_ng.functions.configure_poop,
+    configure_sleep = hunger_ng.functions.configure_sleep,
     set_effect = hunger_ng.set_effect,
     get_hunger_information = hunger_ng.functions.get_hunger_information,
     --get_poop_information = hunger_ng.functions.get_poop_information,
     hunger_bar_image = hunger_ng.settings.hunger_bar.image,
     poop_bar_image = hunger_ng.settings.poop_bar.image,
+    sleep_bar_image = hunger_ng.settings.sleep_bar.image,
+    poop_maximum = hunger_ng.settings.poop.maximum,
     food_items = hunger_ng.food_items,
     interoperability = {
         settings = hunger_ng.settings,
@@ -203,8 +233,6 @@ local api_functions = {
         get_data = hunger_ng.functions.get_data,
         set_data = hunger_ng.functions.set_data
     },
-
-    poop_maximum = hunger_ng.settings.poop.maximum,
 }
 
 
