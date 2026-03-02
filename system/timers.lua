@@ -97,8 +97,12 @@ core.register_globalstep(function(dtime)
         alter_hunger(playername, -costs_base, 'base')
       end
       if costs_base ~= 0 and base_timer == 0 and e_digest then
-        alter_poop(playername, costs_base, 'base')
+        alter_poop  (playername,  costs_base, 'base')
       end
+      if costs_base ~= 0 and base_timer == 0 and e_sleep  then
+        alter_sleep (playername, -costs_base, 'base')
+      end
+
 
       -- Heal player if possible and needed
       if heal_amount ~= 0 and heal_timer == 0 then
@@ -120,7 +124,10 @@ core.register_globalstep(function(dtime)
           alter_hunger(playername, -costs_movement, 'movement')
         end
         if moving and e_digest then
-          alter_poop(playername, costs_movement, 'movement')
+          alter_poop  (playername,  costs_movement, 'movement')
+        end
+        if moving and e_sleep  then
+          alter_sleep (playername, -costs_movement, 'movement')
         end
       end
 

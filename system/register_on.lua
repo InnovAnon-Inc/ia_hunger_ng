@@ -47,20 +47,22 @@ end)
 -- after respawn it will be set again. This avoids the player healing even if
 -- the player died.
 -- TODO expose
-core.register_on_dieplayer(function(player)
+f.on_dieplayer = function(player)
   local playername = digger:get_player_name()
   f.alter_hunger(playername, -s.hunger.maximum, 'death')
   f.alter_poop  (playername, -s.poop  .maximum, 'death')
   f.alter_sleep (playername, -s.sleep .maximum, 'death')
   return true
-end)
+end
+core.register_on_dieplayer(f.on_dieplayer)
 -- TODO expose ?
-core.register_on_respawnplayer(function(player)
+f.on_respawnplayer = function(player)
   local playername = player:get_player_name()
   f.alter_hunger(playername, s.hunger.start_with, 'respawn')
   f.alter_poop  (playername, s.poop  .start_with, 'respawn')
   f.alter_sleep (playername, s.sleep .start_with, 'respawn')
-end)
+end
+core.register_on_respawnplayer(f.on_respawnplayer)
 
 
 -- Custom eating function
@@ -171,7 +173,7 @@ end)
 -- value to start with will be used. This can be different from the maximum
 -- hunger value.
 -- TODO expose
-core.register_on_joinplayer(function(player)
+f.on_joinplayer = function(player)
   local player_name = player:get_player_name()
   local unset_h     = not f.get_data(player_name, a.hunger_value)
   local unset_p     = not f.get_data(player_name, a.poop_value)
@@ -251,4 +253,5 @@ core.register_on_joinplayer(function(player)
     }))
   end
 
-end)
+end
+core.register_on_joinplayer(f.on_joinplayer)
