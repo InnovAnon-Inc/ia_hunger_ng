@@ -97,7 +97,7 @@ core.register_globalstep(function(dtime)
       -- beds.player[name] = {}
       -- beds.pos[name] = pos
       -- beds.bed_position[name] = bed_pos
-      local can_sleep  = beds.player[name] ~= nil
+      local can_sleep  = beds.player[playername] ~= nil
 
       -- Basal metabolism costs
       if costs_base ~= 0 and base_timer == 0 and e_hunger then
