@@ -40,6 +40,7 @@ local digest_interval           = hunger_ng.settings.timers.digest
 local sleep_below               = hunger_ng.effects.sleep.below
 local sleep_amount              = hunger_ng.effects.sleep.amount
 local sleep_interval            = hunger_ng.settings.timers.sleep
+local sleep_max                 = hunger_ng.settings.sleep.maximum
 local use_hunger_bar = hunger_ng.settings.hunger_bar.use
 local use_poop_bar              = hunger_ng.settings.poop_bar.use
 local use_sleep_bar             = hunger_ng.settings.sleep_bar.use
@@ -82,15 +83,21 @@ core.register_globalstep(function(dtime)
   --
   -- If the value and the timer for the corresponding attribute are not zero
   -- (value) and zero (timer) then the alteration of that attribute is executed.
-  for _,player in ipairs(get_connected_players()) do
+  for _,player in ipairs(get_connected_players()) do -- TODO handle mobs
     if player:is_player() then
       local playername = player:get_player_name()
       local hp_max = player:get_properties().hp_max
+      --local breath_max = ...
       local e_heal = get_data(playername, effect_heal, true) == 'enabled'
       local e_hunger = get_data(playername, effect_hunger, true) == 'enabled'
       local e_starve = get_data(playername, effect_starve, true) == 'enabled'
-      local e_digest = get_data(playername, effect_digest, true) == 'enabled'
-      local e_sleep  = get_data(playername, effect_sleep,  true) == 'enabled'
+      local e_digest   = get_data(playername, effect_digest, true) == 'enabled'
+      local e_sleep    = get_data(playername, effect_sleep,  true) == 'enabled'
+      -- in beds/functions.lua: lay_down()
+      -- beds.player[name] = {}
+      -- beds.pos[name] = pos
+      -- beds.bed_position[name] = bed_pos
+      local can_sleep  = beds.player[name] ~= nil
 
       -- Basal metabolism costs
       if costs_base ~= 0 and base_timer == 0 and e_hunger then
@@ -100,7 +107,9 @@ core.register_globalstep(function(dtime)
         alter_poop  (playername,  costs_base, 'base')
       end
       if costs_base ~= 0 and base_timer == 0 and e_sleep  then
-        alter_sleep (playername, -costs_base, 'base')
+	if not can_sleep then
+            alter_sleep (playername, -costs_base, 'base')
+	end
       end
 
 
@@ -114,6 +123,15 @@ core.register_globalstep(function(dtime)
         if can_heal and needs_health and e_heal then
           alter_health(playername, heal_amount, 'healing')
         end
+      end
+
+      if sleep_amount ~= 0 and sleep_timer == 0 then
+	assert(sleep_amount > 0)
+        local sleep       = get_data(playername, sleep_attribute)
+	local needs_sleep = sleep < sleep_max
+	if can_sleep and needs_sleep and e_sleep then
+	  alter_sleep(playername, sleep_amount, 'sleeping')
+	end
       end
 
       -- Alter hunger based on movement costs
