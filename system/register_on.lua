@@ -181,6 +181,7 @@ end)
 -- TODO expose
 f.on_joinplayer = function(player)
   local player_name = player:get_player_name()
+  --minetest.log('hunger_ng.on_joinplayer('..player_name..')')
   local unset_h     = not f.get_data(player_name, a.hunger_value)
   local unset_p     = not f.get_data(player_name, a.poop_value)
   local unset_s     = not f.get_data(player_name, a.sleep_value)
@@ -189,6 +190,9 @@ f.on_joinplayer = function(player)
   local reset_p     = f.get_data(player_name, a.poop_value)   and not s.poop.persistent
   local reset_s     = f.get_data(player_name, a.sleep_value)  and not s.sleep.persistent
   local reset       = reset_h or reset_p or reset_s
+
+  --minetest.log('hunger_ng.on_joinplayer('..player_name..') unset: '..tostring(unset))
+  --minetest.log('hunger_ng.on_joinplayer('..player_name..') reset: '..tostring(reset))
 
   -- Only set if the value is not set or if hunger is configured not
   -- being persistent.
@@ -208,6 +212,16 @@ f.on_joinplayer = function(player)
     f.set_data(player_name, a.sleep_disabled,     0)
   end
 
+  --minetest.log('hunger_ng.on_joinplayer('..player_name..') hunger value: '..tostring(f.get_data(player_name, a.hunger_value)))
+  --minetest.log('hunger_ng.on_joinplayer('..player_name..') poop value  : '..tostring(f.get_data(player_name, a.poop_value)))
+  --minetest.log('hunger_ng.on_joinplayer('..player_name..') sleep value : '..tostring(f.get_data(player_name, a.sleep_value)))
+  assert(s.hunger.start_with ~= false)
+  assert(s.poop  .start_with ~= false)
+  assert(s.sleep .start_with ~= false)
+  assert(f.get_data(player_name, a.hunger_value) ~= false)
+  assert(f.get_data(player_name, a.poop_value)   ~= false)
+  assert(f.get_data(player_name, a.sleep_value)  ~= false)
+
   -- Always reset (enable) hunger effect settings
   f.set_data(player_name, a.effect_hunger, 'enabled')
   f.set_data(player_name, a.effect_heal, 'enabled')
@@ -218,7 +232,9 @@ f.on_joinplayer = function(player)
   -- Only set hunger bar ID if hunger bar is configured to be used
   if s.hunger_bar.use then
     --minetest.log('using hunger bar')
-    f.set_data(player_name, a.hunger_bar_id, player:hud_add({
+    --minetest.log('hunger_on.on_joinplayer('..player_name..') hunger bar id: '..a.hunger_bar_id)
+    assert(a.hunger_bar_id ~= nil)
+    local hunger_hud = player:hud_add({
       type = 'statbar',
       position = { x=0.5, y=1 },
       text = hunger_ng.hunger_bar_image,
@@ -226,14 +242,17 @@ f.on_joinplayer = function(player)
       number = f.get_data(player_name, a.hunger_value),
       size = { x=24, y=24 },
       offset = {x=25,y=-(48+24+16)},
-    }))
+    })
+    if hunger_hud ~= nil then
+      f.set_data(player_name, a.hunger_bar_id, hunger_hud)
+    end
   end
 
   if s.poop_bar.use then
     --minetest.log('using poop bar')
     assert(hunger_ng.poop_bar_image ~= nil)
     assert(f.get_data(player_name, a.poop_value) ~= nil)
-    f.set_data(player_name, a.poop_bar_id, player:hud_add({
+    local poop_hud   = player:hud_add({
       type = 'statbar',
       position = { x=0.5, y=0.98 },
       text = hunger_ng.poop_bar_image,
@@ -241,14 +260,17 @@ f.on_joinplayer = function(player)
       number = f.get_data(player_name, a.poop_value),
       size = { x=24, y=24 },
       offset = {x=25,y=-(48+24+16)},
-    }))
+    })
+    if poop_hud ~= nil then
+      f.set_data(player_name, a.poop_bar_id, poop_hud)
+    end
   end
 
   if s.sleep_bar.use then
     --minetest.log('using sleep bar')
     assert(hunger_ng.sleep_bar_image ~= nil)
     assert(f.get_data(player_name, a.sleep_value) ~= nil)
-    f.set_data(player_name, a.sleep_bar_id, player:hud_add({
+    local sleep_hud  = player:hud_add({
       type = 'statbar',
       position = { x=0.5, y=0.96 },
       text = hunger_ng.sleep_bar_image,
@@ -256,7 +278,10 @@ f.on_joinplayer = function(player)
       number = f.get_data(player_name, a.sleep_value),
       size = { x=24, y=24 },
       offset = {x=25,y=-(48+24+16)},
-    }))
+    })
+    if sleep_hud ~= nil then
+      f.set_data(player_name, a.sleep_bar_id, sleep_hud)
+    end
   end
 
 end

@@ -85,6 +85,7 @@ core.register_globalstep(function(dtime)
   -- (value) and zero (timer) then the alteration of that attribute is executed.
   --for _,player in ipairs(get_connected_players()) do -- TODO handle mobs
   for _,player in ipairs(ia_names.get_all_actors()) do -- TODO handle mobs
+    --player = fakelib.get_player_interface(player)
     if player:is_player() then
       local playername = player:get_player_name()
       local hp_max = player:get_properties().hp_max
@@ -154,6 +155,9 @@ core.register_globalstep(function(dtime)
       if starve_amount ~= 0 and starve_timer == 0 then
         local hunger = get_data(playername, hunger_attribute)
         local health = player:get_hp()
+	--minetest.log('name        : '..playername)
+	--minetest.log('hunger      : '..tostring(hunger))
+	--minetest.log('starve below: '..tostring(starve_below))
         local starves = hunger < starve_below
         if starves and e_starve then
           if health == 1 and not starve_die then return end
@@ -164,6 +168,9 @@ core.register_globalstep(function(dtime)
       if digest_amount ~= 0 and digest_timer == 0 then
 	assert(digest_amount > 0)
         local poop  = get_data(playername, poop_attribute)
+	--minetest.log('name        : '..playername)
+	--minetest.log('poop        : '..tostring(poop))
+	--minetest.log('digest above: '..tostring(digest_above))
         local poops = poop > digest_above
         if poops and e_digest then
 	  defecate(playername, digest_amount, 'full of it') -- calls alter_poop(..., -digest_amount,...)
