@@ -27,15 +27,17 @@ core.register_on_dignode(function(p, on, digger)
     return
   end
   local playername = digger:get_player_name()
+  assert(playername ~= nil)
   f.alter_hunger(playername, -costs.dig, 'digging')
   f.alter_poop  (playername,  costs.dig, 'digging')
   f.alter_sleep (playername, -costs.dig, 'digging')
 end)
 core.register_on_placenode(function(p, nn, placer, on, is, pt)
-  if placer then
+  if not placer then
     return
   end
-  local playername = digger:get_player_name()
+  local playername = placer:get_player_name()
+  assert(playername ~= nil)
   f.alter_hunger(playername, -costs.place, 'placing')
   f.alter_poop  (playername,  costs.place, 'placing')
   f.alter_sleep (playername, -costs.place, 'placing')
@@ -48,7 +50,9 @@ end)
 -- the player died.
 -- TODO expose
 f.on_dieplayer = function(player)
-  local playername = digger:get_player_name()
+  assert(player ~= nil)
+  local playername = player:get_player_name()
+  assert(playername ~= nil)
   f.alter_hunger(playername, -s.hunger.maximum, 'death')
   f.alter_poop  (playername, -s.poop  .maximum, 'death')
   f.alter_sleep (playername, -s.sleep .maximum, 'death')
@@ -57,7 +61,9 @@ end
 core.register_on_dieplayer(f.on_dieplayer)
 -- TODO expose ?
 f.on_respawnplayer = function(player)
+  assert(player ~= nil)
   local playername = player:get_player_name()
+  assert(playername ~= nil)
   f.alter_hunger(playername, s.hunger.start_with, 'respawn')
   f.alter_poop  (playername, s.poop  .start_with, 'respawn')
   f.alter_sleep (playername, s.sleep .start_with, 'respawn')

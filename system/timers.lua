@@ -83,7 +83,8 @@ core.register_globalstep(function(dtime)
   --
   -- If the value and the timer for the corresponding attribute are not zero
   -- (value) and zero (timer) then the alteration of that attribute is executed.
-  for _,player in ipairs(get_connected_players()) do -- TODO handle mobs
+  --for _,player in ipairs(get_connected_players()) do -- TODO handle mobs
+  for _,player in ipairs(ia_names.get_all_actors()) do -- TODO handle mobs
     if player:is_player() then
       local playername = player:get_player_name()
       local hp_max = player:get_properties().hp_max
