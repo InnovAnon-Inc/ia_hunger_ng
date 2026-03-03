@@ -17,7 +17,7 @@ add('pooper:digestive_agent', {
 })	
 
 minetest.override_item("pooper:laxative", {
-	on_use=minetest.item_eat(0),
+	on_use=minetest.item_eat(0), -- TODO hunger_ng.defecate_soon()
 })
 add('pooper:laxative', {
 	heals    =  0,
