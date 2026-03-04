@@ -25,7 +25,8 @@ local get_current_modname = core.get_current_modname
 local get_data = function (playername, field, as_string)
     --local player = get_player_by_name(playername)
     local player = ia_names.get_actor_by_name(playername)
-    if not player then return false end
+    --if not player then return false end
+    assert(player ~= nil)
 
     local player_meta = player:get_meta()
 
@@ -49,12 +50,16 @@ end
 local set_data = function (playername, field, value)
     --local player = get_player_by_name(playername)
     local player = ia_names.get_actor_by_name(playername)
-    if not player then return false end
+    --if not player then return false end
+    assert(player ~= nil)
     local player_meta = player:get_meta()
     assert(player_meta ~= nil)
     --minetest.log('hunger_ng.set_data('..playername..') field: '..tostring(field))
     --minetest.log('hunger_ng.set_data('..playername..') value: '..tostring(value))
     player_meta:set_string(field, value)
+    --minetest.log('value: '..value)
+    --minetest.log('data : '..get_data(playername, field, true))
+    assert(get_data(playername, field, true) == tostring(value))
 end
 
 
@@ -104,20 +109,25 @@ end
 -- @param playername The name of the player to check
 -- @return bool
 local hunger_disabled = function (playername)
-    local interact = core.check_player_privs(playername, { interact=true })
+    --local interact = core.check_player_privs(playername, { interact=true })
+    local interact = ia_names.check_actor_privs(playername, { interact=true })
+    --minetest.log('interact: '..tostring(interact))
     local disabled = get_data(playername, a.hunger_disabled)
+    --minetest.log('disabled: '..tostring(disabled))
     if core.is_yes(disabled) or not interact then return true end
     return false
 end
 local poop_disabled = function (playername)
-    local interact = core.check_player_privs(playername, { interact=true })
+    --local interact = core.check_player_privs(playername, { interact=true })
+    local interact = ia_names.check_actor_privs(playername, { interact=true })
     local disabled = get_data(playername, a.poop_disabled)
     if core.is_yes(disabled) or not interact then return true end
     --return false
     return hunger_disabled(playername)
 end
 local sleep_disabled = function (playername)
-    local interact = core.check_player_privs(playername, { interact=true })
+    --local interact = core.check_player_privs(playername, { interact=true })
+    local interact = ia_names.check_actor_privs(playername, { interact=true })
     local disabled = get_data(playername, a.sleep_disabled)
     if core.is_yes(disabled) or not interact then return true end
     return false
@@ -284,8 +294,12 @@ hunger_ng.functions.alter_hunger = function (playername, change, reason)
     --local player = get_player_by_name(playername)
     local player = ia_names.get_actor_by_name(playername)
 
-    if player == nil then return end
-    if hunger_disabled(playername) then return end
+    --if player == nil then return end
+    assert(player ~= nil)
+    if hunger_disabled(playername) then
+	    minetest.log('hunger disabled for '..playername)
+	    return
+    end
 
     local current_hunger = get_data(playername, a.hunger_value)
     local new_hunger = current_hunger + change

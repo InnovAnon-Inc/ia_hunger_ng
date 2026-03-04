@@ -110,7 +110,7 @@ core.register_globalstep(function(dtime)
       end
       if costs_base ~= 0 and base_timer == 0 and e_sleep  then
 	if not can_sleep then
-            alter_sleep (playername, -costs_base, 'base')
+          alter_sleep (playername, -costs_base, 'base')
 	end
       end
 
