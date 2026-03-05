@@ -31,6 +31,7 @@ core.register_on_dignode(function(p, on, digger)
   f.alter_hunger(playername, -costs.dig, 'digging')
   f.alter_poop  (playername,  costs.dig, 'digging')
   f.alter_sleep (playername, -costs.dig, 'digging')
+  f.alter_thirst(playername, -costs.dig, 'digging')
 end)
 core.register_on_placenode(function(p, nn, placer, on, is, pt)
   if not placer then
@@ -41,6 +42,7 @@ core.register_on_placenode(function(p, nn, placer, on, is, pt)
   f.alter_hunger(playername, -costs.place, 'placing')
   f.alter_poop  (playername,  costs.place, 'placing')
   f.alter_sleep (playername, -costs.place, 'placing')
+  f.alter_thirst(playername, -costs.place, 'placing')
 end)
 
 -- TODO persistence ?
@@ -56,6 +58,7 @@ f.on_dieplayer = function(player)
   f.alter_hunger(playername, -s.hunger.maximum, 'death')
   f.alter_poop  (playername, -s.poop  .maximum, 'death')
   f.alter_sleep (playername, -s.sleep .maximum, 'death')
+  f.alter_thirst(playername, -s.thirst.maximum, 'death')
   return true
 end
 core.register_on_dieplayer(f.on_dieplayer)
@@ -67,6 +70,7 @@ f.on_respawnplayer = function(player)
   f.alter_hunger(playername, s.hunger.start_with, 'respawn')
   f.alter_poop  (playername, s.poop  .start_with, 'respawn')
   f.alter_sleep (playername, s.sleep .start_with, 'respawn')
+  f.alter_thirst(playername, s.thirst.start_with, 'respawn')
 end
 core.register_on_respawnplayer(f.on_respawnplayer)
 
@@ -97,9 +101,11 @@ core.register_on_item_eat(function(hpc, rwi, itemstack, user, pt)
   local current_hunger = f.get_data(player_name, a.hunger_value)
   local current_poop    = f.get_data(player_name, a.poop_value)
   local current_sleep   = f.get_data(player_name, a.sleep_value)
+  local current_thirst  = f.get_data(player_name, a.thirst_value)
   local hunger_disabled = f.get_data(player_name, a.hunger_disabled)
   local poop_disabled   = f.get_data(player_name, a.poop_disabled)
   local sleep_disabled  = f.get_data(player_name, a.sleep_disabled)
+  local thirst_disabled = f.get_data(player_name, a.thirst_disabled)
   local item_sound = definition.sound or {}
   local eating_sound = item_sound.eat or 'hunger_ng_eat'
 
@@ -120,9 +126,32 @@ core.register_on_item_eat(function(hpc, rwi, itemstack, user, pt)
   local satiates = hunger_def.satiates or 0
   local digests  = hunger_def.digests  or 0
   local rests    = hunger_def.rests    or 0
+  local quenches = hunger_def.quenches or 0
 
-  if current_hunger == s.hunger.maximum and heals <= 0 and satiates >= 0 then
+  --if current_hunger == s.hunger.maximum and heals <= 0 and satiates >= 0 then
+  -- TODO more nuanced differentiation between eating and drinking
+--  if (current_hunger == s.hunger.maximum and
+--     heals <= 0 and satiates >= 0 )      and
+--     (current_thirst == s.thirst.maximum and
+--     heals <= 0 and quenches >= 0)
+--  then
+  if (current_hunger == s.hunger.maximum and heals <= 0 and satiates >  0)    -- not hungry
+     --(current_thirst == s.thirst.maximum and heals <= 0 and quenches >= 0)  -- not thirsty
+  then
     chat_send(player_name, S('You’re fully satiated already!'))
+    return itemstack
+  end
+  if (current_thirst == s.thirst.maximum and heals <= 0 and quenches > 0)     -- not thirsty
+     --(current_hunger == s.hunger.maximum and heals <= 0 and satiates >=  0) -- not hungry
+  then
+    chat_send(player_name, S('You’re fully quenched already!'))
+    return itemstack
+  end
+  -- TODO maybe use an assertion for this branch:
+  if  (current_hunger == s.hunger.maximum and heals <= 0 and satiates >= 0)   -- not hungry
+  and (current_thirst == s.thirst.maximum and heals <= 0 and quenches >= 0)   -- not thirsty
+  then
+    chat_send(player_name, S('You’re fully satiated and quenched already!'))
     return itemstack
   end
   --minetest.log('hunger_ng.register_on_item_eat() e')
@@ -156,8 +185,9 @@ core.register_on_item_eat(function(hpc, rwi, itemstack, user, pt)
   core.sound_play(eating_sound, { to_player = player_name })
   f.alter_hunger(player_name, satiates, 'eating')
   f.alter_health(player_name, heals, 'eating')
-  f.alter_poop_soon(player_name, digests, 'eating', digest_interval)
-  f.alter_sleep    (player_name, rests,   'eating')
+  f.alter_poop_soon(player_name, digests,  'eating', digest_interval)
+  f.alter_sleep    (player_name, rests,    'eating')
+  f.alter_thirst   (player_name, quenches, 'eating')
   itemstack:take_item(1)
 
   if hunger_def.returns then
@@ -185,11 +215,13 @@ f.on_joinplayer = function(player)
   local unset_h     = not f.get_data(player_name, a.hunger_value)
   local unset_p     = not f.get_data(player_name, a.poop_value)
   local unset_s     = not f.get_data(player_name, a.sleep_value)
-  local unset       = unset_h or unset_p or unset_s
+  local unset_t     = not f.get_data(player_name, a.thirst_value)
+  local unset       = unset_h or unset_p or unset_s or unset_t
   local reset_h     = f.get_data(player_name, a.hunger_value) and not s.hunger.persistent
   local reset_p     = f.get_data(player_name, a.poop_value)   and not s.poop.persistent
   local reset_s     = f.get_data(player_name, a.sleep_value)  and not s.sleep.persistent
-  local reset       = reset_h or reset_p or reset_s
+  local reset_t     = f.get_data(player_name, a.thirst_value) and not s.thirst.persistent
+  local reset       = reset_h or reset_p or reset_s or reset_t
 
   --minetest.log('hunger_ng.on_joinplayer('..player_name..') unset: '..tostring(unset))
   --minetest.log('hunger_ng.on_joinplayer('..player_name..') reset: '..tostring(reset))
@@ -204,12 +236,15 @@ f.on_joinplayer = function(player)
     f.set_data(player_name, a.hunger_value, s.hunger.start_with)
     f.set_data(player_name, a.eating_timestamp, 0)
     f.set_data(player_name, a.hunger_disabled, 0)
-    f.set_data(player_name, a.poop_value,   s.poop.start_with)
-    f.set_data(player_name, a.pooping_timestamp,  0)
-    f.set_data(player_name, a.poop_disabled,      0)
-    f.set_data(player_name, a.sleep_value,  s.sleep.start_with)
-    f.set_data(player_name, a.sleeping_timestamp, 0)
-    f.set_data(player_name, a.sleep_disabled,     0)
+    f.set_data(player_name, a.poop_value,          s.poop.start_with)
+    f.set_data(player_name, a.pooping_timestamp,   0)
+    f.set_data(player_name, a.poop_disabled,       0)
+    f.set_data(player_name, a.sleep_value,         s.sleep.start_with)
+    f.set_data(player_name, a.sleeping_timestamp,  0)
+    f.set_data(player_name, a.sleep_disabled,      0)
+    f.set_data(player_name, a.thirst_value,        s.thirst.start_with)
+    f.set_data(player_name, a.drinking_timestamp,  0)
+    f.set_data(player_name, a.thirst_disabled,     0)
   end
 
   --minetest.log('hunger_ng.on_joinplayer('..player_name..') hunger value: '..tostring(f.get_data(player_name, a.hunger_value)))
@@ -218,25 +253,46 @@ f.on_joinplayer = function(player)
   assert(s.hunger.start_with ~= false)
   assert(s.poop  .start_with ~= false)
   assert(s.sleep .start_with ~= false)
+  assert(s.thirst.start_with ~= false)
   assert(f.get_data(player_name, a.hunger_value) ~= false)
   assert(f.get_data(player_name, a.poop_value)   ~= false)
   assert(f.get_data(player_name, a.sleep_value)  ~= false)
+  assert(f.get_data(player_name, a.thirst_value) ~= false)
 
   -- Always reset (enable) hunger effect settings
   f.set_data(player_name, a.effect_hunger, 'enabled')
   f.set_data(player_name, a.effect_heal, 'enabled')
   f.set_data(player_name, a.effect_starve, 'enabled')
-  f.set_data(player_name, a.effect_digest, 'enabled')
-  f.set_data(player_name, a.effect_sleep,  'enabled')
+  f.set_data(player_name, a.effect_digest,    'enabled')
+  f.set_data(player_name, a.effect_sleep,     'enabled')
+  f.set_data(player_name, a.effect_dehydrate, 'enabled')
 
   -- Only set hunger bar ID if hunger bar is configured to be used
+  if s.thirst_bar.use then
+    --minetest.log('using thirst bar')
+    assert(hunger_ng.thirst_bar_image ~= nil)
+    assert(f.get_data(player_name, a.thirst_value) ~= nil)
+    local thirst_hud  = player:hud_add({
+      type = 'statbar',
+      position = { x=0.5, y=1 },
+      text = hunger_ng.thirst_bar_image,
+      direction = 0,
+      number = f.get_data(player_name, a.thirst_value),
+      size = { x=24, y=24 },
+      offset = {x=25,y=-(48+24+16)},
+    })
+    if thirst_hud ~= nil then
+      f.set_data(player_name, a.thirst_bar_id, thirst_hud)
+    end
+  end
+
   if s.hunger_bar.use then
     --minetest.log('using hunger bar')
     --minetest.log('hunger_on.on_joinplayer('..player_name..') hunger bar id: '..a.hunger_bar_id)
     assert(a.hunger_bar_id ~= nil)
     local hunger_hud = player:hud_add({
       type = 'statbar',
-      position = { x=0.5, y=1 },
+      position = { x=0.5, y=0.98 },
       text = hunger_ng.hunger_bar_image,
       direction = 0,
       number = f.get_data(player_name, a.hunger_value),
@@ -254,7 +310,7 @@ f.on_joinplayer = function(player)
     assert(f.get_data(player_name, a.poop_value) ~= nil)
     local poop_hud   = player:hud_add({
       type = 'statbar',
-      position = { x=0.5, y=0.98 },
+      position = { x=0.5, y=0.96 },
       text = hunger_ng.poop_bar_image,
       direction = 0,
       number = f.get_data(player_name, a.poop_value),
@@ -272,7 +328,7 @@ f.on_joinplayer = function(player)
     assert(f.get_data(player_name, a.sleep_value) ~= nil)
     local sleep_hud  = player:hud_add({
       type = 'statbar',
-      position = { x=0.5, y=0.96 },
+      position = { x=0.5, y=0.94 },
       text = hunger_ng.sleep_bar_image,
       direction = 0,
       number = f.get_data(player_name, a.sleep_value),

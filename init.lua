@@ -18,7 +18,7 @@ if not core.is_yes(core.settings:get('enable_damage')) then
         get_hunger_information = function () call('get_hunger_information') end,
         hunger_bar_image = '',
 
-        add_poop_data = function () call('add_poop_data') end,
+        --add_poop_data = function () call('add_poop_data') end,
         alter_poop = function () call('alter_poop') end,
         configure_poop = function () call('configure_poop') end,
         --get_poop_information = function () call('get_poop_information') end,
@@ -84,9 +84,13 @@ hunger_ng = {
         healing = 0,
         injuring = 0,
 
-	digesting  = 0,
-	resting    = 0,
-	exhausting = 0,
+	digesting   = 0,
+	resting     = 0,
+	exhausting  = 0,
+	quenching   = 0,
+	dehydrating = 0,
+
+	-- TODO temperature
     },
     attributes = {
         hunger_bar_id = 'hunger_ng:hunger_bar_id',
@@ -97,17 +101,23 @@ hunger_ng = {
         effect_hunger = 'hunger_ng:effect_hunger',
         effect_starve = 'hunger_ng:effect_starve',
 	
-	poop_bar_id        = 'hunger_ng:poop_bar_id',
-	poop_value         = 'hunger_ng:poop_value',
-	pooping_timestamp  = 'hunger_ng:pooping_timestamp',
-	poop_disabled      = 'hunger_ng:poop_disabled',
-	effect_digest      = 'hunger_ng:effect_digest',
+	poop_bar_id         = 'hunger_ng:poop_bar_id',
+	poop_value          = 'hunger_ng:poop_value',
+	pooping_timestamp   = 'hunger_ng:pooping_timestamp',
+	poop_disabled       = 'hunger_ng:poop_disabled',
+	effect_digest       = 'hunger_ng:effect_digest',
 
-	sleep_bar_id       = 'hunger_ng:sleep_bar_id',
-	sleep_value        = 'hunger_ng:sleep_value',
-	sleeping_timestamp = 'hunger_ng:sleeping_timestamp',
-	sleep_disabled     = 'hunger_ng:sleep_disabled',
-	effect_sleep       = 'hunger_ng:effect_sleep',
+	sleep_bar_id        = 'hunger_ng:sleep_bar_id',
+	sleep_value         = 'hunger_ng:sleep_value',
+	sleeping_timestamp  = 'hunger_ng:sleeping_timestamp',
+	sleep_disabled      = 'hunger_ng:sleep_disabled',
+	effect_sleep        = 'hunger_ng:effect_sleep',
+
+	thirst_bar_id       = 'hunger_ng:thirst_bar_id',
+	thirst_value        = 'hunger_ng:thirst_value',
+	drinking_timestamp  = 'hunger_ng:drinking_timestamp',
+	thirst_disabled     = 'hunger_ng:thirst_disabled',
+	effect_dehydrate    = 'hunger_ng:effect_dehydrate',
     },
     configuration = {
         debug_mode = core.is_yes(get('debug_mode', false)),
@@ -126,9 +136,10 @@ hunger_ng = {
             basal_metabolism = tonumber(get('timer_basal_metabolism', 60)),
             movement = tonumber(get('timer_movement', 0.5)),
 
-	    digest = tonumber(get('timer_digest', 3)),
+	    digest = tonumber(get('timer_digest',   3)),
 	    --sleep  = tonumber(get('timer_sleep',  60*60*4)),
-	    sleep  = tonumber(get('timer_sleep',  60)),
+	    sleep  = tonumber(get('timer_sleep',   60)),
+	    thirst = tonumber(get('timer_thirst',  60)),
         },
         hunger = {
             timeout = tonumber(get('hunger_timeout', 0)),
@@ -137,27 +148,38 @@ hunger_ng = {
             maximum = tonumber(get('hunger_maximum', 20))
         },
 
-        poop_bar  = {
-            image               = get('poop_bar_image', 'poop_turd.png'),
-            use                 = core.is_yes(get('use_poop_bar', true)),
-            force_builtin_image = get('force_builtin_image', false),
+        poop_bar   = {
+            image               =             get('poop_bar_image',      'poop_turd.png'),
+            use                 = core.is_yes(get('use_poop_bar',        true)),
+            force_builtin_image =             get('force_builtin_image', false),
         },
-        poop      = {
-            timeout             = tonumber(get('poop_timeout', 0)),
+        poop       = {
+            timeout             = tonumber(   get('poop_timeout',     0)),
             persistent          = core.is_yes(get('poop_persistent', true)),
-            start_with          = tonumber(get('poop_start_with', 1)),
-            maximum             = tonumber(get('poop_maximum', 20))
+            start_with          = tonumber(   get('poop_start_with',  1)),
+            maximum             = tonumber(   get('poop_maximum',    20)),
         },
-	sleep_bar = {
-            image               = get('sleep_bar_image', 'beds_bed.png'),
-            use                 = core.is_yes(get('use_sleep_bar', true)),
-            force_builtin_image = get('force_builtin_image', false),
+	sleep_bar  = {
+            image               =             get('sleep_bar_image',     'beds_bed.png'),
+            use                 = core.is_yes(get('use_sleep_bar',       true)),
+            force_builtin_image =             get('force_builtin_image', false),
 	},
-	sleep     = {
-            timeout             = tonumber(get('sleep_timeout', 0)),
+	sleep      = {
+            timeout             = tonumber(   get('sleep_timeout',     0)),
             persistent          = core.is_yes(get('sleep_persistent', true)),
-            start_with          = tonumber(get('sleep_start_with', 20)),
-            maximum             = tonumber(get('sleep_maximum', 20))
+            start_with          = tonumber(   get('sleep_start_with', 20)),
+            maximum             = tonumber(   get('sleep_maximum',    20)),
+	},
+	thirst_bar = {
+	    image               =             get('sleep_bar_image',     'claycrafter_glass_of_water_inv.png'),
+	    use                 = core.is_yes(get('use_thirst_bar',      true)),
+	    force_builtin_image =             get('force_builtin_image', false),
+	},
+	thirst     = {
+	    timeout             = tonumber(   get('thirst_timeout',     0)),
+	    persistent          = core.is_yes(get('thirst_persistent', true)),
+	    start_with          = tonumber(   get('thirst_start_with', 20)),
+	    maximum             = tonumber(   get('thirst_maximum',    20)),
 	},
     },
     effects = {
@@ -173,14 +195,19 @@ hunger_ng = {
         disabled_attribute = 'hunger_ng:hunger_disabled',
 
 	digest     = {
-            above  = tonumber(get('poop_above', 19)),
-            amount = tonumber(get('poop_amount', 1)),
-            below  = tonumber(get('poop_below', 5)), -- minimum amount to make a turd
+            above  = tonumber(   get('poop_above', 19)),
+            amount = tonumber(   get('poop_amount', 1)),
+            below  = tonumber(   get('poop_below',  5)), -- minimum amount to make a turd
 	},
 	sleep      = {
-            below  = tonumber(get('exhaust_below', 1)),
-            amount = tonumber(get('exhaust_amount', 1)),
-            die    = core.is_yes(get('exhaust_die', false))
+            below  = tonumber(   get('exhaust_below',  1)),
+            amount = tonumber(   get('exhaust_amount', 1)),
+            die    = core.is_yes(get('exhaust_die',    false))
+	},
+	dehydrate  = {
+            below  = tonumber(   get('dehydrate_below',  1)),
+            amount = tonumber(   get('dehydrate_amount', 1)),
+            die    = core.is_yes(get('dehydrate_die',    false))
 	},
     },
     costs = {
@@ -214,17 +241,20 @@ local api_functions = {
     add_hunger_data = hunger_ng.functions.add_hunger_data,
     --add_poop_data = hunger_ng.functions.add_poop_data,
     alter_hunger = hunger_ng.functions.alter_hunger,
-    alter_poop      = hunger_ng.functions.alter_poop,
-    alter_sleep     = hunger_ng.functions.alter_sleep,
+    alter_poop       = hunger_ng.functions.alter_poop,
+    alter_sleep      = hunger_ng.functions.alter_sleep,
+    alter_thirst     = hunger_ng.functions.alter_thirst,
     configure_hunger = hunger_ng.functions.configure_hunger,
-    configure_poop  = hunger_ng.functions.configure_poop,
-    configure_sleep = hunger_ng.functions.configure_sleep,
+    configure_poop   = hunger_ng.functions.configure_poop,
+    configure_sleep  = hunger_ng.functions.configure_sleep,
+    configure_thirst = hunger_ng.functions.configure_thirst,
     set_effect = hunger_ng.set_effect,
     get_hunger_information = hunger_ng.functions.get_hunger_information,
     --get_poop_information = hunger_ng.functions.get_poop_information,
     hunger_bar_image = hunger_ng.settings.hunger_bar.image,
-    poop_bar_image  = hunger_ng.settings.poop_bar.image,
-    sleep_bar_image = hunger_ng.settings.sleep_bar.image,
+    poop_bar_image   = hunger_ng.settings.poop_bar.image,
+    sleep_bar_image  = hunger_ng.settings.sleep_bar.image,
+    thirst_bar_image = hunger_ng.settings.thirst_bar.image,
     poop_maximum    = hunger_ng.settings.poop.maximum,
     on_joinplayer   = hunger_ng.functions.on_joinplayer,
     on_dieplayer    = hunger_ng.functions.on_dieplayer,

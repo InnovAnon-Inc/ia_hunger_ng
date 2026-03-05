@@ -24,6 +24,7 @@ local override_item = core.override_item
 --         satiates = n,
 --         digests  = n|nil,
 --         rests    = n,
+--         quenches = n,
 --         returns  = 'id'
 --     }
 --
@@ -49,7 +50,8 @@ hunger_ng.functions.add_hunger_data = function (id, data)
     if digests == nil then
         digests    = math.abs(satiates)
     end
-    local rests    = data.rests or 0
+    local rests    = data.rests    or 0
+    local quenches = data.quenches or 0
 
     if satiates > 0 then
         info = info..'\n'..S('Satiates: @1', satiates)
@@ -60,17 +62,25 @@ hunger_ng.functions.add_hunger_data = function (id, data)
     end
 
     assert(digests >= 0)
-    if digests > 0 then
-        info = info..'\n'..S('Digests: @1', digests)
-        hunger_ng.food_items.digesting = hunger_ng.food_items.digesting + 1
+    if     digests > 0  then
+        info                             = info..'\n'..S('Digests: @1',   digests)
+        hunger_ng.food_items.digesting   = hunger_ng.food_items.digesting   + 1
     end
 
-    if rests > 0 then
-        info = info..'\n'..S('Restores: @1', rests)
-        hunger_ng.food_items.resting = hunger_ng.food_items.resting + 1
-    elseif rests < 0 then
-        info = info..'\n'..S('Exhausts: @1', math.abs(rests))
-        hunger_ng.food_items.exhausting = hunger_ng.food_items.exhausting + 1
+    if     rests > 0    then
+        info                             = info..'\n'..S('Restores: @1',   rests)
+        hunger_ng.food_items.resting     = hunger_ng.food_items.resting     + 1
+    elseif rests < 0    then
+        info                             = info..'\n'..S('Exhausts: @1',   math.abs(rests))
+        hunger_ng.food_items.exhausting  = hunger_ng.food_items.exhausting  + 1
+    end
+
+    if     quenches > 0 then
+        info                             = info..'\n'..S('Quenches: @1',   quenches)
+        hunger_ng.food_items.quenching   = hunger_ng.food_items.quenching   + 1
+    elseif quenches < 0 then
+        info                             = info..'\n'..S('Dehydrates: @1', math.abs(quenches))
+        hunger_ng.food_items.dehydrating = hunger_ng.food_items.dehydrating + 1
     end
 
     if heals > 0 then

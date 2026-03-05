@@ -114,6 +114,36 @@ local set_sleep = function (name, value, caller)
 
     log('action', '[hunger_ng] '..message)
 end
+local set_thirst = function (name, value, caller)
+    local message = ''
+
+    if not get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.thirst_disabled(name) then
+        chat_send(caller, S('Thirst for @1 is disabled', name))
+        return
+    end
+
+    if value > s.thirst.maximum then value = s.thirst.maximum end
+    if value < 0 then value = 0 end
+
+    f.alter_thirst(name, -s.thirst.maximum, 'chat set 0')
+    f.alter_thirst(name, value, 'chat set target')
+
+    if name ~= caller then
+        chat_send(caller, S('Thirst for @1 set to @2', name, value))
+        chat_send(name, S('@1 set your thirst to @2', caller, value))
+        message = caller..' sets thirst for '..name..' to '..value
+    else
+        chat_send(caller, S('Thirst set to @1', value))
+        message = caller..' sets own thirst to '..value
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
 
 
 -- Change the hunger value
@@ -213,6 +243,35 @@ local change_sleep = function (name, value, caller)
 
     log('action', '[hunger_ng] '..message)
 end
+local change_thirst = function (name, value, caller)
+    local message = ''
+
+    if not get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.thirst_disabled(name) then
+        chat_send(caller, S('Thirst for @1 is disabled', name))
+        return
+    end
+
+    if value > s.thirst.maximum then value = s.thirst.maximum end
+    if value < -s.thirst.maximum then value = -s.thirst.maximum end
+
+    f.alter_thirst(name, value, 'chat change')
+
+    if name ~= caller then
+        chat_send(caller, S('Thirst for @1 changed by @2', name, value))
+        chat_send(name, S('@1 changed your thirst by @2', caller, value))
+        message = caller..'changes thirst for '..name..' by '..value
+    else
+        chat_send(caller, S('Thirst changed by @1', value))
+        message = caller..' changes own thirst by '..value
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
 
 
 -- Toggle hunger being enabled
@@ -305,6 +364,35 @@ local toggle_sleep = function (name, value, caller)
     else
         chat_send(caller, S('Own sleep was toggled'))
         message = caller..' '..action..' own sleep'
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
+local toggle_thirst = function (name, value, caller)
+    local message = ''
+    local action = ''
+    local name = name == '' and caller or name
+
+    if not get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.thirst_disabled(name) then
+        hunger_ng.configure_thirst(name, 'enable')
+        action = 'enabled'
+    else
+        hunger_ng.configure_thirst(name, 'disable')
+        action = 'disabled'
+    end
+
+    if name ~= caller then
+        chat_send(caller, S('Thirst for @1 was toggled', name))
+        chat_send(name, S('@1 toggled your thirst', caller))
+        message = caller..' '..action..' thirst for '..name
+    else
+        chat_send(caller, S('Own thirst was toggled'))
+        message = caller..' '..action..' own thirst'
     end
 
     log('action', '[hunger_ng] '..message)
@@ -406,6 +494,38 @@ local get_sleep = function(name, caller)
                 message = caller..' gets own sleep value'
             else
                 message = caller..' gets sleep value for '..player_name
+            end
+
+            log('action', '[hunger_ng] '..message)
+        end
+    end
+
+    if #name == 0 then
+        chat_send(caller, S('No player matches your criteria'))
+    end
+end
+local get_thirst = function(name, caller)
+    local message = ''
+
+    if name == '' then name = get_connected_players()
+    else name = { get_player_by_name(name) } end
+
+    for _,player in pairs(name) do
+        if player:is_player() then
+            local player_name = player:get_player_name()
+            local player_thirst = f.get_data(player_name, a.thirst_value)
+            local thirst_disabled = f.thirst_disabled(player_name)
+
+            if not thirst_disabled then
+                chat_send(caller, player_name..': '..player_thirst)
+            else
+                chat_send(caller, player_name..': '..S('Thirst is disabled'))
+            end
+
+            if player_name == caller then
+                message = caller..' gets own thirst value'
+            else
+                message = caller..' gets thirst value for '..player_name
             end
 
             log('action', '[hunger_ng] '..message)
@@ -544,6 +664,42 @@ core.register_chatcommand('sleep', {
         else show_help(caller) end
     end
 })
+core.register_chatcommand('thirst', {
+    params = '<set/change/get/toggle> <name> <value>',
+    description = S('Modify or get thirst values'),
+    privs = { manage_hunger = true },
+    func = function (caller, parameters)
+        local pt= {}
+        for p in parameters:gmatch("%S+") do table.insert(pt, p) end
+        local action = pt[1] or ''
+        local name = pt[2] or ''
+        local value = pt[3] or ''
+
+        -- Name parameter missing
+        if not player_exists(name) and tonumber(name) and value == '' then
+            value = name
+            name = caller
+        end
+
+        -- Convert value to number or print error message when trying to set
+        -- a value but no proper value was given
+        if tonumber(value) then
+            value = tonumber(value)
+        else
+            if action ~= 'get' and action ~= 'toggle' then
+                show_help(caller)
+                return
+            end
+        end
+
+        -- Execute the corresponding function for the defined action
+        if     action == 'set' then set_thirst(name, value, caller)
+        elseif action == 'change' then change_thirst(name, value, caller)
+        elseif action == 'get' then get_thirst(name, caller)
+        elseif action == 'toggle' then toggle_thirst(name, value, caller)
+        else show_help(caller) end
+    end
+})
 
 
 -- Personal information chat command
@@ -589,6 +745,20 @@ core.register_chatcommand('mysleep', {
         end
     end
 })
+core.register_chatcommand('mythirst', {
+    params = 'name',
+    description = S('Show own thirst value'),
+    privs = { interact = true },
+    func = function (caller)
+        local player_thirst = f.get_data(caller, a.thirst_value)
+        local thirst_disabled = f.thirst_disabled(caller)
+        if thirst_disabled then
+            chat_send(caller, S('Your thirst is disabled'))
+        else
+            chat_send(caller, S('Your thirst value is @1', player_thirst))
+        end
+    end
+})
 
 
 core.register_chatcommand('defecate', {
@@ -605,3 +775,4 @@ core.register_chatcommand('defecate', {
 	end,
 })
 -- TODO allow sleep without bed? i.e., may cause injury in general, and also temperature damage
+-- TODO urinate

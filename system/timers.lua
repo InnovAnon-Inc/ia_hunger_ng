@@ -8,6 +8,7 @@ local alter_hunger = hunger_ng.functions.alter_hunger
 local alter_poop                = hunger_ng.functions.alter_poop
 local defecate                  = hunger_ng.functions.defecate
 local alter_sleep               = hunger_ng.functions.alter_sleep
+local alter_thirst              = hunger_ng.functions.alter_thirst
 local base_interval = hunger_ng.settings.timers.basal_metabolism
 local costs_base = hunger_ng.costs.base
 local costs_movement = hunger_ng.costs.movement
@@ -16,6 +17,7 @@ local effect_hunger = hunger_ng.attributes.effect_hunger
 local effect_starve = hunger_ng.attributes.effect_starve
 local effect_digest             = hunger_ng.attributes.effect_digest
 local effect_sleep              = hunger_ng.attributes.effect_sleep
+local effect_dehydrate          = hunger_ng.attributes.effect_dehydrate
 local get_data = hunger_ng.functions.get_data
 local heal_above = hunger_ng.effects.heal.above
 local heal_amount = hunger_ng.effects.heal.amount
@@ -23,12 +25,15 @@ local heal_interval = hunger_ng.settings.timers.heal
 local hunger_attribute = hunger_ng.attributes.hunger_value
 local poop_attribute            = hunger_ng.attributes.poop_value
 local sleep_attribute           = hunger_ng.attributes.sleep_value
+local thirst_attribute          = hunger_ng.attributes.thirst_value
 local hunger_bar_id = hunger_ng.attributes.hunger_bar_id
 local poop_bar_id               = hunger_ng.attributes.poop_bar_id
 local sleep_bar_id              = hunger_ng.attributes.sleep_bar_id
+local thirst_bar_id             = hunger_ng.attributes.thirst_bar_id
 local hunger_disabled_attribute = hunger_ng.attributes.hunger_disabled
 local poop_disabled_attribute   = hunger_ng.attributes.poop_disabled
 local sleep_disabled_attribute  = hunger_ng.attributes.sleep_disabled
+local thirst_disabled_attribute = hunger_ng.attributes.thirst_disabled
 local move_interval = hunger_ng.settings.timers.movement
 local starve_amount = hunger_ng.effects.starve.amount
 local starve_below = hunger_ng.effects.starve.below
@@ -41,9 +46,14 @@ local sleep_below               = hunger_ng.effects.sleep.below
 local sleep_amount              = hunger_ng.effects.sleep.amount
 local sleep_interval            = hunger_ng.settings.timers.sleep
 local sleep_max                 = hunger_ng.settings.sleep.maximum
+local dehydrate_below           = hunger_ng.effects.dehydrate.below
+local dehydrate_amount          = hunger_ng.effects.dehydrate.amount
+local thirst_interval           = hunger_ng.settings.timers.thirst
+local thirst_max                = hunger_ng.settings.thirst.maximum
 local use_hunger_bar = hunger_ng.settings.hunger_bar.use
 local use_poop_bar              = hunger_ng.settings.poop_bar.use
 local use_sleep_bar             = hunger_ng.settings.sleep_bar.use
+local use_thirst_bar            = hunger_ng.settings.thirst_bar.use
 
 -- Localize Luanti
 is_yes = core.is_yes
@@ -54,8 +64,9 @@ local base_timer   = 0
 local heal_timer   = 0
 local move_timer   = 0
 local starve_timer = 0
-local digest_timer = 0
-local sleep_timer  = 0
+local digest_timer    = 0
+local sleep_timer     = 0
+local dehydrate_timer = 0
 
 
 core.register_globalstep(function(dtime)
@@ -68,16 +79,18 @@ core.register_globalstep(function(dtime)
   if heal_amount    ~= 0 then heal_timer   = heal_timer   + dtime end
   if costs_movement ~= 0 then move_timer   = move_timer   + dtime end
   if starve_amount  ~= 0 then starve_timer = starve_timer + dtime end
-  if digest_amount  ~= 0 then digest_timer = digest_timer + dtime end
-  if sleep_amount   ~= 0 then sleep_timer  = sleep_timer  + dtime end
+  if digest_amount    ~= 0 then digest_timer    = digest_timer    + dtime end
+  if sleep_amount     ~= 0 then sleep_timer     = sleep_timer     + dtime end
+  if dehydrate_amount ~= 0 then dehydrate_timer = dehydrate_timer + dtime end
 
   -- Reset timers if needed
   if costs_base     ~= 0 and base_timer   >= base_interval   then base_timer   = 0 end
   if heal_amount    ~= 0 and heal_timer   >= heal_interval   then heal_timer   = 0 end
   if costs_movement ~= 0 and move_timer   >= move_interval   then move_timer   = 0 end
   if starve_amount  ~= 0 and starve_timer >= starve_interval then starve_timer = 0 end
-  if digest_amount  ~= 0 and digest_timer >= digest_interval then digest_timer = 0 end
-  if sleep_amount   ~= 0 and sleep_timer  >= sleep_interval  then sleep_timer  = 0 end
+  if digest_amount    ~= 0 and digest_timer    >= digest_interval then digest_timer    = 0 end
+  if sleep_amount     ~= 0 and sleep_timer     >= sleep_interval  then sleep_timer     = 0 end
+  if dehydrate_amount ~= 0 and dehydrate_timer >= thirst_interval then dehydrate_timer = 0 end
 
   -- Iterate over all players
   --
@@ -93,8 +106,9 @@ core.register_globalstep(function(dtime)
       local e_heal = get_data(playername, effect_heal, true) == 'enabled'
       local e_hunger = get_data(playername, effect_hunger, true) == 'enabled'
       local e_starve = get_data(playername, effect_starve, true) == 'enabled'
-      local e_digest   = get_data(playername, effect_digest, true) == 'enabled'
-      local e_sleep    = get_data(playername, effect_sleep,  true) == 'enabled'
+      local e_digest    = get_data(playername, effect_digest,     true) == 'enabled'
+      local e_sleep     = get_data(playername, effect_sleep,      true) == 'enabled'
+      local e_dehydrate = get_data(playername, effect_dehydrate,  true) == 'enabled'
       -- in beds/functions.lua: lay_down()
       -- beds.player[name] = {}
       -- beds.pos[name] = pos
@@ -106,12 +120,15 @@ core.register_globalstep(function(dtime)
         alter_hunger(playername, -costs_base, 'base')
       end
       if costs_base ~= 0 and base_timer == 0 and e_digest then
-        alter_poop  (playername,  costs_base, 'base')
+        alter_poop    (playername,  costs_base, 'base')
       end
       if costs_base ~= 0 and base_timer == 0 and e_sleep  then
 	if not can_sleep then
           alter_sleep (playername, -costs_base, 'base')
 	end
+      end
+      if costs_base ~= 0 and base_timer == 0 and e_dehydrate then
+        alter_thirst  (playername, -costs_base, 'base')
       end
 
 
@@ -143,12 +160,15 @@ core.register_globalstep(function(dtime)
         if moving and e_hunger then
           alter_hunger(playername, -costs_movement, 'movement')
         end
-        if moving and e_digest then
+        if moving and e_digest    then
           alter_poop  (playername,  costs_movement, 'movement')
         end
-        if moving and e_sleep  then
+        if moving and e_sleep     then
           alter_sleep (playername, -costs_movement, 'movement')
         end
+	if moving and e_dehydrate then
+          alter_thirst(playername, -costs_movement, 'movement')
+	end
       end
 
       -- Starve player if starvation requirements are fulfilled
@@ -165,24 +185,36 @@ core.register_globalstep(function(dtime)
         end
       end
 
-      if digest_amount ~= 0 and digest_timer == 0 then
-	assert(digest_amount > 0)
-        local poop  = get_data(playername, poop_attribute)
+      if digest_amount    ~= 0 and digest_timer    == 0 then
+	assert(digest_amount    > 0)
+        local poop       = get_data(playername, poop_attribute)
+	assert(poop   ~= nil)
 	--minetest.log('name        : '..playername)
 	--minetest.log('poop        : '..tostring(poop))
 	--minetest.log('digest above: '..tostring(digest_above))
-        local poops = poop > digest_above
-        if poops and e_digest then
-	  defecate(playername, digest_amount, 'full of it') -- calls alter_poop(..., -digest_amount,...)
+        local poops      = poop   > digest_above
+        if poops      and e_digest    then
+	  defecate(playername,      digest_amount,    'full of it') -- calls alter_poop(..., -digest_amount,...)
         end
       end
 
-      if sleep_amount ~= 0 and sleep_timer == 0 then
-	assert(sleep_amount > 0)
-        local sleep    = get_data(playername, sleep_attribute)
-	local exhausts = sleep < sleep_below
-	if exhausts and e_sleep then
-          alter_health(playername, -sleep_amount, 'exhaustion')
+      if sleep_amount     ~= 0 and sleep_timer     == 0 then
+	assert(sleep_amount     > 0)
+        local sleep      = get_data(playername, sleep_attribute)
+	assert(sleep  ~= nil)
+	local exhausts   = sleep  < sleep_below
+	if exhausts   and e_sleep     then
+          alter_health(playername, -sleep_amount,     'exhaustion')
+	end
+      end
+
+      if dehydrate_amount ~= 0 and dehydrate_timer == 0 then
+	assert(dehydrate_amount > 0)
+        local thirst     = get_data(playername, thirst_attribute)
+	assert(thirst ~= nil)
+	local dehydrates = thirst < dehydrate_below
+	if dehydrates and e_dehydrate then
+          alter_health(playername, -dehydrate_amount, 'dehydration')
 	end
       end
 
@@ -246,6 +278,27 @@ if use_sleep_bar then
           player:hud_change(bar_id, 'text', '')
         else
           player:hud_change(bar_id, 'text', hunger_ng.sleep_bar_image)
+        end
+      end
+    end
+  end)
+end
+if use_thirst_bar then
+  core.register_globalstep(function(dtime)
+    for _,player in ipairs(get_connected_players()) do
+      if player:is_player() then
+        local player_name = player:get_player_name()
+        local bar_id = get_data(player_name, thirst_bar_id)
+        local awash = player:get_breath() < player:get_properties().breath_max
+        local disabled = get_data(player_name, thirst_disabled_attribute)
+        --local no_food = hunger_ng.food_items.resting == 0
+        if awash or
+	  is_yes(disabled)
+	  --or no_food
+	then
+          player:hud_change(bar_id, 'text', '')
+        else
+          player:hud_change(bar_id, 'text', hunger_ng.thirst_bar_image)
         end
       end
     end
