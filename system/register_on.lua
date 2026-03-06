@@ -223,8 +223,8 @@ f.on_joinplayer = function(player)
   local reset_t     = f.get_data(player_name, a.thirst_value) and not s.thirst.persistent
   local reset       = reset_h or reset_p or reset_s or reset_t
 
-  --minetest.log('hunger_ng.on_joinplayer('..player_name..') unset: '..tostring(unset))
-  --minetest.log('hunger_ng.on_joinplayer('..player_name..') reset: '..tostring(reset))
+  minetest.log('hunger_ng.on_joinplayer('..player_name..') unset: '..tostring(unset))
+  minetest.log('hunger_ng.on_joinplayer('..player_name..') reset: '..tostring(reset))
 
   -- Only set if the value is not set or if hunger is configured not
   -- being persistent.

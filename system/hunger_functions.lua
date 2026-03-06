@@ -29,11 +29,16 @@ local get_data = function (playername, field, as_string)
     assert(player ~= nil)
 
     local player_meta = player:get_meta()
+    assert(player_meta ~= nil)
 
+    local value = player_meta:get(field)
+    --minetest.log('hunger_ng.get_data('..playername..') field: '..tostring(field))
+    --minetest.log('hunger_ng.get_data('..playername..') value: '..tostring(value))
+    --assert(value ~= nil)
     if as_string then
-        return tostring(player_meta:get(field) or 'invalid')
+        return tostring(value or 'invalid')
     else
-        return tonumber(player_meta:get(field) or nil)
+        return tonumber(value or nil)
     end
 end
 
@@ -54,11 +59,12 @@ local set_data = function (playername, field, value)
     assert(player ~= nil)
     local player_meta = player:get_meta()
     assert(player_meta ~= nil)
-    --minetest.log('hunger_ng.set_data('..playername..') field: '..tostring(field))
-    --minetest.log('hunger_ng.set_data('..playername..') value: '..tostring(value))
+    minetest.log('hunger_ng.set_data('..playername..') field: '..tostring(field))
+    minetest.log('hunger_ng.set_data('..playername..') value: '..tostring(value))
     player_meta:set_string(field, value)
-    --minetest.log('value: '..value)
-    --minetest.log('data : '..get_data(playername, field, true))
+    minetest.log('value: '..value)
+    minetest.log('data : '..get_data(playername, field, true))
+    assert(value ~= nil)
     assert(get_data(playername, field, true) == tostring(value))
 end
 
@@ -111,9 +117,11 @@ end
 local hunger_disabled = function (playername)
     local interact = core.check_player_privs(playername, { interact=true })
     --local interact = ia_names.check_actor_privs(playername, { interact=true })
-    --minetest.log('interact: '..tostring(interact))
+    minetest.log('hunger_ng.hunger_disabled('..playername..') interact: '..tostring(interact))
     local disabled = get_data(playername, a.hunger_disabled)
-    --minetest.log('disabled: '..tostring(disabled))
+    minetest.log('hunger_ng.hunger_disabled('..playername..') disabled: '..tostring(disabled))
+    assert(interact)
+    assert(not core.is_yes(disabled))
     if core.is_yes(disabled) or not interact then return true end
     return false
 end
@@ -121,6 +129,8 @@ local poop_disabled = function (playername)
     local interact = core.check_player_privs(playername, { interact=true })
     --local interact = ia_names.check_actor_privs(playername, { interact=true })
     local disabled = get_data(playername, a.poop_disabled)
+    assert(interact)
+    assert(not core.is_yes(disabled))
     if core.is_yes(disabled) or not interact then return true end
     --return false
     return hunger_disabled(playername)
@@ -129,6 +139,8 @@ local sleep_disabled = function (playername)
     local interact = core.check_player_privs(playername, { interact=true })
     --local interact = ia_names.check_actor_privs(playername, { interact=true })
     local disabled = get_data(playername, a.sleep_disabled)
+    assert(interact)
+    assert(not core.is_yes(disabled))
     if core.is_yes(disabled) or not interact then return true end
     return false
 end
@@ -136,6 +148,8 @@ local thirst_disabled = function (playername)
     local interact = core.check_player_privs(playername, { interact=true })
     --local interact = ia_names.check_actor_privs(playername, { interact=true })
     local disabled = get_data(playername, a.thirst_disabled)
+    assert(interact)
+    assert(not core.is_yes(disabled))
     if core.is_yes(disabled) or not interact then return true end
     --return false
     return hunger_disabled(playername)
@@ -154,39 +168,47 @@ end
 -- @param playername The name of the player whose hunger is to be configured
 -- @param action     The action that will be taken as described
 local configure_hunger = function (playername, action)
-    if not action then return end
+    --if not action then return end
+    assert(action)
 
     if action == 'enable' then
         set_data(playername, a.hunger_disabled, 0)
     elseif action == 'disable' then
         set_data(playername, a.hunger_disabled, 1)
+    else assert(false)
     end
 end
 local configure_poop = function (playername, action)
-    if not action then return end
+    --if not action then return end
+    assert(action)
 
     if action == 'enable' then
         set_data(playername, a.poop_disabled, 0)
     elseif action == 'disable' then
         set_data(playername, a.poop_disabled, 1)
+    else assert(false)
     end
 end
 local configure_sleep = function (playername, action)
-    if not action then return end
+    --if not action then return end
+    assert(action)
 
     if action == 'enable' then
         set_data(playername, a.sleep_disabled, 0)
     elseif action == 'disable' then
         set_data(playername, a.sleep_disabled, 1)
+    else assert(false)
     end
 end
 local configure_thirst = function (playername, action)
-    if not action then return end
+    --if not action then return end
+    assert(action)
 
     if action == 'enable' then
         set_data(playername, a.thirst_disabled, 0)
     elseif action == 'disable' then
         set_data(playername, a.thirst_disabled, 1)
+    else assert(false)
     end
 end
 
@@ -201,7 +223,8 @@ end
 hunger_ng.functions.get_hunger_information = function (playername)
     local player = get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
-    if not player then return { invalid = true, player_name = playername } end
+    --if not player then return { invalid = true, player_name = playername } end
+    assert(player)
 
     local last_eaten = get_data(playername, a.eating_timestamp) or 0
     local last_pooped    = get_data(playername, a.pooping_timestamp)  or 0
@@ -259,7 +282,7 @@ hunger_ng.functions.get_hunger_information = function (playername)
             },
 	    dehyrate  = {
                 enabled = e_dehydrate,
-		status  = current_thirst < e.thirst.below,
+		status  = current_thirst < e.dehydrate.below,
             },
         },
         timestamps = {
@@ -304,8 +327,10 @@ hunger_ng.functions.alter_health = function (playername, change, reason)
     --local player = ia_names.get_actor_by_name(playername)
     local hp_max = player:get_properties().hp_max
 
-    if player == nil then return end
-    if hunger_disabled(playername) then return end
+    --if player == nil then return end
+    assert(player ~= nil)
+    --if hunger_disabled(playername) then return end
+    assert(not hunger_disabled(playername))
 
     local current_health = player:get_hp()
     local new_health = current_health + change
@@ -328,10 +353,8 @@ hunger_ng.functions.alter_hunger = function (playername, change, reason)
 
     --if player == nil then return end
     assert(player ~= nil)
-    if hunger_disabled(playername) then
-	    minetest.log('hunger disabled for '..playername)
-	    return
-    end
+    --if hunger_disabled(playername) then return end
+    assert(not hunger_disabled(playername))
 
     local current_hunger = get_data(playername, a.hunger_value)
     local new_hunger = current_hunger + change
@@ -352,8 +375,10 @@ hunger_ng.functions.alter_poop = function (playername, change, reason)
     local player = get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
 
-    if player == nil then return end
-    if poop_disabled(playername) then return end
+    --if player == nil then return end
+    assert(player ~= nil)
+    --if poop_disabled(playername) then return end
+    assert(not poop_disabled(playername))
 
     local current_poop = get_data(playername, a.poop_value)
     local new_poop = current_poop + change
@@ -405,8 +430,10 @@ hunger_ng.functions.alter_sleep = function (playername, change, reason)
     local player = get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
 
-    if player == nil then return end
-    if sleep_disabled(playername) then return end
+    --if player == nil then return end
+    assert(player ~= nil)
+    --if sleep_disabled(playername) then return end
+    assert(not sleep_disabled(playername))
 
     local current_sleep = get_data(playername, a.sleep_value)
     local new_sleep = current_sleep + change
@@ -428,8 +455,10 @@ hunger_ng.functions.alter_thirst = function (playername, change, reason)
     local player = get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
 
-    if player == nil then return end
-    if thirst_disabled(playername) then return end
+    --if player == nil then return end
+    assert(player ~= nil)
+    --if thirst_disabled(playername) then return end
+    assert(not thirst_disabled(playername))
 
     local current_thirst = get_data(playername, a.thirst_value)
     local new_thirst = current_thirst + change

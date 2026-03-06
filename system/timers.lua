@@ -96,8 +96,8 @@ core.register_globalstep(function(dtime)
   --
   -- If the value and the timer for the corresponding attribute are not zero
   -- (value) and zero (timer) then the alteration of that attribute is executed.
-  --for _,player in ipairs(get_connected_players()) do -- TODO handle mobs
-  for _,player in ipairs(ia_names.get_all_actors()) do -- TODO handle mobs
+  for _,player in ipairs(get_connected_players()) do -- TODO handle mobs
+  --for _,player in ipairs(ia_names.get_all_actors()) do -- TODO handle mobs
     --player = fakelib.get_player_interface(player)
     if player:is_player() then
       local playername = player:get_player_name()
@@ -135,9 +135,15 @@ core.register_globalstep(function(dtime)
       -- Heal player if possible and needed
       if heal_amount ~= 0 and heal_timer == 0 then
         local hunger = get_data(playername, hunger_attribute)
+	assert(hunger ~= nil)
         local health = player:get_hp()
+	assert(health ~= nil)
+	assert(player:get_breath() ~= nil)
+	assert(player:get_properties().breath_max ~= nil)
         local awash = player:get_breath() < player:get_properties().breath_max
+	assert(heal_above ~= nil)
         local can_heal = hunger >= heal_above and not awash
+	assert(hp_max ~= nil)
         local needs_health = health < hp_max
         if can_heal and needs_health and e_heal then
           alter_health(playername, heal_amount, 'healing')
@@ -173,8 +179,13 @@ core.register_globalstep(function(dtime)
 
       -- Starve player if starvation requirements are fulfilled
       if starve_amount ~= 0 and starve_timer == 0 then
+	assert(playername ~= nil)
+	assert(hunger_attribute ~= nil)
         local hunger = get_data(playername, hunger_attribute)
         local health = player:get_hp()
+	assert(hunger ~= nil)
+	assert(health ~= nil)
+	assert(starve_below ~= nil)
 	--minetest.log('name        : '..playername)
 	--minetest.log('hunger      : '..tostring(hunger))
 	--minetest.log('starve below: '..tostring(starve_below))
@@ -189,6 +200,7 @@ core.register_globalstep(function(dtime)
 	assert(digest_amount    > 0)
         local poop       = get_data(playername, poop_attribute)
 	assert(poop   ~= nil)
+	assert(digest_above ~= nil)
 	--minetest.log('name        : '..playername)
 	--minetest.log('poop        : '..tostring(poop))
 	--minetest.log('digest above: '..tostring(digest_above))
@@ -202,6 +214,7 @@ core.register_globalstep(function(dtime)
 	assert(sleep_amount     > 0)
         local sleep      = get_data(playername, sleep_attribute)
 	assert(sleep  ~= nil)
+	assert(sleep_below ~= nil)
 	local exhausts   = sleep  < sleep_below
 	if exhausts   and e_sleep     then
           alter_health(playername, -sleep_amount,     'exhaustion')
@@ -212,6 +225,7 @@ core.register_globalstep(function(dtime)
 	assert(dehydrate_amount > 0)
         local thirst     = get_data(playername, thirst_attribute)
 	assert(thirst ~= nil)
+	assert(dehydrate_below ~= nil)
 	local dehydrates = thirst < dehydrate_below
 	if dehydrates and e_dehydrate then
           alter_health(playername, -dehydrate_amount, 'dehydration')
