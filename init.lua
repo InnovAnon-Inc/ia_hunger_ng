@@ -84,13 +84,14 @@ hunger_ng = {
         healing = 0,
         injuring = 0,
 
-	digesting   = 0,
-	resting     = 0,
-	exhausting  = 0,
-	quenching   = 0,
-	dehydrating = 0,
-
-	-- TODO temperature
+	digesting   = 0, -- makes you poop
+	resting     = 0, -- makes you less sleepy
+	exhausting  = 0, -- makes you more sleepy
+	quenching   = 0, -- makes you less thirsty
+	dehydrating = 0, -- makes you more thirsty
+	hydrating   = 0, -- makes you pee
+--	warming     = 0,
+--	cooling     = 0,
     },
     attributes = {
         hunger_bar_id = 'hunger_ng:hunger_bar_id',
@@ -118,6 +119,18 @@ hunger_ng = {
 	drinking_timestamp  = 'hunger_ng:drinking_timestamp',
 	thirst_disabled     = 'hunger_ng:thirst_disabled',
 	effect_dehydrate    = 'hunger_ng:effect_dehydrate',
+
+	pee_bar_id         = 'hunger_ng:pee_bar_id',
+	pee_value          = 'hunger_ng:pee_value',
+	peeing_timestamp   = 'hunger_ng:peeing_timestamp',
+	pee_disabled       = 'hunger_ng:pee_disabled',
+	effect_hydrate     = 'hunger_ng:effect_hydrate',
+
+--	heat_bar_id         = 'hunger_ng:heat_bar_id',
+--	heat_value          = 'hunger_ng:heat_value',
+--	heating_timestamp   = 'hunger_ng:heating_timestamp',
+--	heat_disabled       = 'hunger_ng:heat_disabled',
+--	effect_heat         = 'hunger_ng:effect_heat',
     },
     configuration = {
         debug_mode = core.is_yes(get('debug_mode', false)),
@@ -136,10 +149,12 @@ hunger_ng = {
             basal_metabolism = tonumber(get('timer_basal_metabolism', 60)),
             movement = tonumber(get('timer_movement', 0.5)),
 
-	    digest = tonumber(get('timer_digest',   3)),
+	    digest  = tonumber(get('timer_digest',   3)),
 	    --sleep  = tonumber(get('timer_sleep',  60*60*4)),
-	    sleep  = tonumber(get('timer_sleep',   60)),
-	    thirst = tonumber(get('timer_thirst',  60)),
+	    sleep   = tonumber(get('timer_sleep',   60)),
+	    thirst  = tonumber(get('timer_thirst',  60)),
+	    hydrate = tonumber(get('timer_digest',   3)), -- TODO faster (realistic)
+--	    heat   = tonumber(get('timer_heat',     0.5)),
         },
         hunger = {
             timeout = tonumber(get('hunger_timeout', 0)),
@@ -181,6 +196,28 @@ hunger_ng = {
 	    start_with          = tonumber(   get('thirst_start_with', 20)),
 	    maximum             = tonumber(   get('thirst_maximum',    20)),
 	},
+        pee_bar   = {
+            image               =             get('pee_bar_image',      'default_gold_lump.png'), -- TODO
+            use                 = core.is_yes(get('use_pee_bar',        true)),
+            force_builtin_image =             get('force_builtin_image', false),
+        },
+        pee       = {
+            timeout             = tonumber(   get('pee_timeout',     0)),
+            persistent          = core.is_yes(get('pee_persistent', true)),
+            start_with          = tonumber(   get('pee_start_with',  1)),
+            maximum             = tonumber(   get('pee_maximum',    20)),
+        },
+--	heat_bar   = {
+--	    image               =             get('heat_bar_image',      ...), -- TODO
+--	    use                 = core.is_yes(get('use_heat_bar',        true)),
+--	    force_builtin_image =             get('force_builtin_image', false),
+--	},
+--	heat       = {
+--	    timeout             = tonumber(   get('heat_timeout',     0)),
+--	    persistent          = core.is_yes(get('heat_persistent', true)),
+--	    start_with          = tonumber(   get('heat_start_with', ...)),
+--	    maximum             = tonumber(   get('heat_maximum',    ...)),
+--        },
     },
     effects = {
         heal = {
@@ -209,6 +246,17 @@ hunger_ng = {
             amount = tonumber(   get('dehydrate_amount', 1)),
             die    = core.is_yes(get('dehydrate_die',    false))
 	},
+	hydrate    = {
+            above  = tonumber(   get('pee_above', 19)),
+            amount = tonumber(   get('pee_amount', 1)),
+            below  = tonumber(   get('pee_below',  1)), -- minimum amount to make a droplet
+	},
+--        heat       = {
+--            below  = tonumber(   get('heat_below',   0)),
+--            above  = tonumber(   get('heat_above',  45)),
+--            amount = tonumber(   get('heat_amount',  1)),
+--            die    = core.is_yes(get('heat_die',    false))
+--        },
     },
     costs = {
         base = tonumber(get('cost_base', 0.1)),
@@ -244,10 +292,12 @@ local api_functions = {
     alter_poop       = hunger_ng.functions.alter_poop,
     alter_sleep      = hunger_ng.functions.alter_sleep,
     alter_thirst     = hunger_ng.functions.alter_thirst,
+    alter_pee        = hunger_ng.functions.alter_pee,
     configure_hunger = hunger_ng.functions.configure_hunger,
     configure_poop   = hunger_ng.functions.configure_poop,
     configure_sleep  = hunger_ng.functions.configure_sleep,
     configure_thirst = hunger_ng.functions.configure_thirst,
+    configure_pee    = hunger_ng.functions.configure_pee,
     set_effect = hunger_ng.set_effect,
     get_hunger_information = hunger_ng.functions.get_hunger_information,
     --get_poop_information = hunger_ng.functions.get_poop_information,
@@ -255,10 +305,12 @@ local api_functions = {
     poop_bar_image   = hunger_ng.settings.poop_bar.image,
     sleep_bar_image  = hunger_ng.settings.sleep_bar.image,
     thirst_bar_image = hunger_ng.settings.thirst_bar.image,
-    poop_maximum    = hunger_ng.settings.poop.maximum,
-    on_joinplayer   = hunger_ng.functions.on_joinplayer,
-    on_dieplayer    = hunger_ng.functions.on_dieplayer,
-    on_leaveplayer  = hunger_ng.functions.on_leaveplayer,
+    pee_bar_image    = hunger_ng.settings.pee_bar.image,
+    poop_maximum     = hunger_ng.settings.poop.maximum,
+    pee_maximum      = hunger_ng.settings.pee.maximum,
+    on_joinplayer    = hunger_ng.functions.on_joinplayer,
+    on_dieplayer     = hunger_ng.functions.on_dieplayer,
+    on_leaveplayer   = hunger_ng.functions.on_leaveplayer,
     food_items = hunger_ng.food_items,
     interoperability = {
         settings = hunger_ng.settings,

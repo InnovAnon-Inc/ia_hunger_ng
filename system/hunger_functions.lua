@@ -154,6 +154,16 @@ local thirst_disabled = function (playername)
     --return false
     return hunger_disabled(playername)
 end
+local pee_disabled = function (playername)
+    local interact = core.check_player_privs(playername, { interact=true })
+    --local interact = ia_names.check_actor_privs(playername, { interact=true })
+    local disabled = get_data(playername, a.pee_disabled)
+    assert(interact)
+    assert(not core.is_yes(disabled))
+    if core.is_yes(disabled) or not interact then return true end
+    --return false
+    return thirst_disabled(playername)
+end
 
 
 -- Configures hunger effects for the player
@@ -211,6 +221,17 @@ local configure_thirst = function (playername, action)
     else assert(false)
     end
 end
+local configure_pee = function (playername, action)
+    --if not action then return end
+    assert(action)
+
+    if action == 'enable' then
+        set_data(playername, a.pee_disabled, 0)
+    elseif action == 'disable' then
+        set_data(playername, a.pee_disabled, 1)
+    else assert(false)
+    end
+end
 
 
 -- Get the current hunger information
@@ -230,10 +251,12 @@ hunger_ng.functions.get_hunger_information = function (playername)
     local last_pooped    = get_data(playername, a.pooping_timestamp)  or 0
     local last_slept     = get_data(playername, a.sleeping_timestamp) or 0
     local last_drank     = get_data(playername, a.drinking_timestamp) or 0
+    local last_peed      = get_data(playername, a.peeing_timestamp)   or 0
     local current_hunger = get_data(playername, a.hunger_value)
     local current_poop   = get_data(playername, a.poop_value)
     local current_sleep  = get_data(playername, a.sleep_value)
     local current_thirst = get_data(playername, a.thirst_value)
+    local current_pee    = get_data(playername, a.pee_value)
     local player_properties = player:get_properties()
 
     local e_heal = get_data(playername, a.effect_heal, true) == 'enabled'
@@ -242,6 +265,7 @@ hunger_ng.functions.get_hunger_information = function (playername)
     local e_digest    = get_data(playername, a.effect_digest,    true) == 'enabled'
     local e_sleep     = get_data(playername, a.effect_sleep,     true) == 'enabled'
     local e_dehydrate = get_data(playername, a.effect_dehydrate, true) == 'enabled'
+    local e_hydrate   = get_data(playername, a.effect_hydrate,   true) == 'enabled'
 
     return {
         player_name = playername,
@@ -260,6 +284,7 @@ hunger_ng.functions.get_hunger_information = function (playername)
 	    poop   = s.poop.maximum,
 	    sleep  = s.sleep.maximum,
 	    thirst = s.thirst.maximum,
+	    pee    = s.pee.maximum,
         },
         effects = {
             starving = {
@@ -284,6 +309,10 @@ hunger_ng.functions.get_hunger_information = function (playername)
                 enabled = e_dehydrate,
 		status  = current_thirst < e.dehydrate.below,
             },
+	    hydrate   = {
+                enabled = e_hydrate,
+		status  = current_pee    > e.hydrate.above,
+            },
         },
         timestamps = {
             last_eaten = tonumber(last_eaten),
@@ -291,6 +320,8 @@ hunger_ng.functions.get_hunger_information = function (playername)
 
 	    last_pooped = tonumber(last_pooped),
 	    last_slept  = tonumber(last_slept),
+	    last_drank  = tonumber(last_drank),
+	    last_peed   = tonumber(last_peed),
         },
 
         poop   = {
@@ -313,6 +344,13 @@ hunger_ng.functions.get_hunger_information = function (playername)
             disabled = thirst_disabled(playername),
             exact    = current_thirst,
             enabled  = e_dehydrate,
+        },
+        pee    = {
+            floored  = math.floor(current_pee),
+            ceiled   = math.ceil (current_pee),
+            disabled = pee_disabled  (playername),
+            exact    = current_pee,
+            enabled  = e_hydrate,
         },
     }
 end
@@ -475,6 +513,61 @@ hunger_ng.functions.alter_thirst = function (playername, change, reason)
 
     debug_log(playername, 'thirst', current_thirst, new_thirst, change, reason)
 end
+hunger_ng.functions.alter_pee = function (playername, change, reason)
+    local player = get_player_by_name(playername)
+    --local player = ia_names.get_actor_by_name(playername)
+
+    --if player == nil then return end
+    assert(player ~= nil)
+    --if pee_disabled(playername) then return end
+    assert(not pee_disabled(playername))
+
+    local current_pee = get_data(playername, a.pee_value)
+    local new_pee = current_pee + change
+    local bar_id = get_data(playername, a.pee_bar_id)
+
+    if new_pee > s.pee.maximum then new_pee = s.pee.maximum end
+    if new_pee < 0 then new_pee = 0 end
+
+    set_data(playername, a.pee_value, new_pee)
+
+    if s.pee_bar.use then
+        player:hud_change(bar_id, 'number', math.ceil(new_pee))
+    end
+
+    debug_log(playername, 'pee', current_pee, new_pee, change, reason)
+end
+hunger_ng.functions.alter_pee_soon = function (playername, change, reason, dt)
+	minetest.after(dt, function()
+		f.alter_pee(playername, change, reason)
+	end)
+end
+hunger_ng.functions.urinate = function(playername, change, reason)
+	assert(change == nil or change > 0)
+	local current_pee = get_data(playername, a.pee_value)
+--	if current_pee <= 0 then
+--		minetest.chat_send_player(player, "Your bladder is empty!")
+--		return
+--	end
+	assert(current_pee > 0)
+	if change == nil then
+		change = current_pee
+	end
+	assert(change > 0)
+	f.alter_pee(playername, -change, reason)
+	if change < current_pee then -- piss yourself
+		ia_peeer.play_splatter_sound(playername)
+		return
+	end
+	assert(change >= current_pee)
+	local pee_below = e.hydrate.below
+	if change < pee_below then -- not enough
+		ia_peeer.play_zipper_sound(playername)
+		return
+	end
+	assert(change >= pee_below)
+	ia_peeer.urinate(playername, change)
+end
 
 
 
@@ -537,3 +630,5 @@ hunger_ng.functions.sleep_disabled   = sleep_disabled
 hunger_ng.functions.configure_sleep  = configure_sleep
 hunger_ng.functions.thirst_disabled  = sleep_disabled
 hunger_ng.functions.configure_thirst = configure_sleep
+hunger_ng.functions.pee_disabled     = pee_disabled
+hunger_ng.functions.configure_pee    = configure_pee

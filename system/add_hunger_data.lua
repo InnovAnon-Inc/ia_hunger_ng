@@ -25,6 +25,7 @@ local override_item = core.override_item
 --         digests  = n|nil,
 --         rests    = n,
 --         quenches = n,
+--         hydrates = n|nil,
 --         returns  = 'id'
 --     }
 --
@@ -52,6 +53,10 @@ hunger_ng.functions.add_hunger_data = function (id, data)
     end
     local rests    = data.rests    or 0
     local quenches = data.quenches or 0
+    local hydrates = data.hydrates
+    if hydrates == nil then
+        hydrates     = math.abs(quenches)
+    end
 
     if satiates > 0 then
         info = info..'\n'..S('Satiates: @1', satiates)
@@ -81,6 +86,12 @@ hunger_ng.functions.add_hunger_data = function (id, data)
     elseif quenches < 0 then
         info                             = info..'\n'..S('Dehydrates: @1', math.abs(quenches))
         hunger_ng.food_items.dehydrating = hunger_ng.food_items.dehydrating + 1
+    end
+
+    assert(hydrates >= 0)
+    if     hydrates >  0 then
+        info                             = info..'\n'..S('Hydrates: @1',   hydrates)
+        hunger_ng.food_items.hydrating   = hunger_ng.food_items.hydrating   + 1
     end
 
     if heals > 0 then

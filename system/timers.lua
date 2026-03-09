@@ -237,17 +237,26 @@ core.register_globalstep(function(dtime)
 
 end)
 
+local function is_awash(player)
+	local breath      = player:get_breath()
+	local properties  = player:get_properties()
+	local breath_max  = properties.breath_max
+        assert(breath     == tonumber(breath),     'breath: '..tostring(breath))
+	assert(breath_max == tonumber(breath_max), 'breath_max: '..tostring(breath_max))
+	return (breath < breath_max)
+end
 
+-- TODO instead of always hiding when awash, can move all of these up when awash but holding airtank equipment ?
 -- Show/hide hunger bar on player breath status or functionality status
 if use_hunger_bar then
   core.register_globalstep(function(dtime)
     for _,player in ipairs(get_connected_players()) do
       if player:is_player() then
         local player_name = player:get_player_name()
-        local bar_id = get_data(player_name, hunger_bar_id)
-        local awash = player:get_breath() < player:get_properties().breath_max
-        local disabled = get_data(player_name, hunger_disabled_attribute)
-        local no_food = hunger_ng.food_items.satiating == 0
+        local bar_id      = get_data(player_name, hunger_bar_id)
+	local awash       = is_awash(player)
+        local disabled    = get_data(player_name, hunger_disabled_attribute)
+        local no_food     = (hunger_ng.food_items.satiating == 0)
         if awash or is_yes(disabled) or no_food then
           player:hud_change(bar_id, 'text', '')
         else
@@ -262,10 +271,10 @@ if use_poop_bar then
     for _,player in ipairs(get_connected_players()) do
       if player:is_player() then
         local player_name = player:get_player_name()
-        local bar_id = get_data(player_name, poop_bar_id)
-        local awash = player:get_breath() < player:get_properties().breath_max
-        local disabled = get_data(player_name, poop_disabled_attribute)
-        local no_food = hunger_ng.food_items.digesting == 0
+        local bar_id      = get_data(player_name, poop_bar_id)
+	local awash       = is_awash(player)
+        local disabled    = get_data(player_name, poop_disabled_attribute)
+        local no_food     = (hunger_ng.food_items.digesting == 0)
         if awash or
 	  is_yes(disabled) or no_food then
           player:hud_change(bar_id, 'text', '')
@@ -281,10 +290,10 @@ if use_sleep_bar then
     for _,player in ipairs(get_connected_players()) do
       if player:is_player() then
         local player_name = player:get_player_name()
-        local bar_id = get_data(player_name, sleep_bar_id)
-        local awash = player:get_breath() < player:get_properties().breath_max
-        local disabled = get_data(player_name, sleep_disabled_attribute)
-        --local no_food = hunger_ng.food_items.resting == 0
+        local bar_id      = get_data(player_name, sleep_bar_id)
+	local awash       = is_awash(player)
+        local disabled    = get_data(player_name, sleep_disabled_attribute)
+        --local no_food = hunger_ng.food_items.resting == 0 -- TODO check whether ia beds is present
         if awash or
 	  is_yes(disabled)
 	  --or no_food
@@ -302,10 +311,10 @@ if use_thirst_bar then
     for _,player in ipairs(get_connected_players()) do
       if player:is_player() then
         local player_name = player:get_player_name()
-        local bar_id = get_data(player_name, thirst_bar_id)
-        local awash = player:get_breath() < player:get_properties().breath_max
-        local disabled = get_data(player_name, thirst_disabled_attribute)
-        --local no_food = hunger_ng.food_items.resting == 0
+        local bar_id      = get_data(player_name, thirst_bar_id)
+        local awash       = is_awash(player)
+        local disabled    = get_data(player_name, thirst_disabled_attribute)
+        local no_food     = (hunger_ng.food_items.quenching == 0)
         if awash or
 	  is_yes(disabled)
 	  --or no_food

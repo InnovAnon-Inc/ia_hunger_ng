@@ -144,6 +144,36 @@ local set_thirst = function (name, value, caller)
 
     log('action', '[hunger_ng] '..message)
 end
+local set_pee = function (name, value, caller)
+    local message = ''
+
+    if not get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.pee_disabled(name) then
+        chat_send(caller, S('Pee for @1 is disabled', name))
+        return
+    end
+
+    if value > s.pee.maximum then value = s.pee.maximum end
+    if value < 0 then value = 0 end
+
+    f.alter_pee(name, -s.pee.maximum, 'chat set 0')
+    f.alter_pee(name, value, 'chat set target')
+
+    if name ~= caller then
+        chat_send(caller, S('Pee for @1 set to @2', name, value))
+        chat_send(name, S('@1 set your pee to @2', caller, value))
+        message = caller..' sets pee for '..name..' to '..value
+    else
+        chat_send(caller, S('Pee set to @1', value))
+        message = caller..' sets own pee to '..value
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
 
 
 -- Change the hunger value
@@ -272,6 +302,35 @@ local change_thirst = function (name, value, caller)
 
     log('action', '[hunger_ng] '..message)
 end
+local change_pee = function (name, value, caller)
+    local message = ''
+
+    if not get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.pee_disabled(name) then
+        chat_send(caller, S('Pee for @1 is disabled', name))
+        return
+    end
+
+    if value > s.pee.maximum then value = s.pee.maximum end
+    if value < -s.pee.maximum then value = -s.pee.maximum end
+
+    f.alter_pee(name, value, 'chat change')
+
+    if name ~= caller then
+        chat_send(caller, S('Pee for @1 changed by @2', name, value))
+        chat_send(name, S('@1 changed your pee by @2', caller, value))
+        message = caller..'changes pee for '..name..' by '..value
+    else
+        chat_send(caller, S('Pee changed by @1', value))
+        message = caller..' changes own pee by '..value
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
 
 
 -- Toggle hunger being enabled
@@ -393,6 +452,35 @@ local toggle_thirst = function (name, value, caller)
     else
         chat_send(caller, S('Own thirst was toggled'))
         message = caller..' '..action..' own thirst'
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
+local toggle_pee = function (name, value, caller)
+    local message = ''
+    local action = ''
+    local name = name == '' and caller or name
+
+    if not get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.pee_disabled(name) then
+        hunger_ng.configure_pee(name, 'enable')
+        action = 'enabled'
+    else
+        hunger_ng.configure_pee(name, 'disable')
+        action = 'disabled'
+    end
+
+    if name ~= caller then
+        chat_send(caller, S('Pee for @1 was toggled', name))
+        chat_send(name, S('@1 toggled your pee', caller))
+        message = caller..' '..action..' pee for '..name
+    else
+        chat_send(caller, S('Own pee was toggled'))
+        message = caller..' '..action..' own pee'
     end
 
     log('action', '[hunger_ng] '..message)
@@ -526,6 +614,38 @@ local get_thirst = function(name, caller)
                 message = caller..' gets own thirst value'
             else
                 message = caller..' gets thirst value for '..player_name
+            end
+
+            log('action', '[hunger_ng] '..message)
+        end
+    end
+
+    if #name == 0 then
+        chat_send(caller, S('No player matches your criteria'))
+    end
+end
+local get_pee = function(name, caller)
+    local message = ''
+
+    if name == '' then name = get_connected_players()
+    else name = { get_player_by_name(name) } end
+
+    for _,player in pairs(name) do
+        if player:is_player() then
+            local player_name = player:get_player_name()
+            local player_pee = f.get_data(player_name, a.pee_value)
+            local pee_disabled = f.pee_disabled(player_name)
+
+            if not pee_disabled then
+                chat_send(caller, player_name..': '..player_pee)
+            else
+                chat_send(caller, player_name..': '..S('Pee is disabled'))
+            end
+
+            if player_name == caller then
+                message = caller..' gets own pee value'
+            else
+                message = caller..' gets pee value for '..player_name
             end
 
             log('action', '[hunger_ng] '..message)
@@ -700,6 +820,42 @@ core.register_chatcommand('thirst', {
         else show_help(caller) end
     end
 })
+core.register_chatcommand('pee', {
+    params = '<set/change/get/toggle> <name> <value>',
+    description = S('Modify or get pee values'),
+    privs = { manage_hunger = true },
+    func = function (caller, parameters)
+        local pt= {}
+        for p in parameters:gmatch("%S+") do table.insert(pt, p) end
+        local action = pt[1] or ''
+        local name = pt[2] or ''
+        local value = pt[3] or ''
+
+        -- Name parameter missing
+        if not player_exists(name) and tonumber(name) and value == '' then
+            value = name
+            name = caller
+        end
+
+        -- Convert value to number or print error message when trying to set
+        -- a value but no proper value was given
+        if tonumber(value) then
+            value = tonumber(value)
+        else
+            if action ~= 'get' and action ~= 'toggle' then
+                show_help(caller)
+                return
+            end
+        end
+
+        -- Execute the corresponding function for the defined action
+        if     action == 'set' then set_pee(name, value, caller)
+        elseif action == 'change' then change_pee(name, value, caller)
+        elseif action == 'get' then get_pee(name, caller)
+        elseif action == 'toggle' then toggle_pee(name, value, caller)
+        else show_help(caller) end
+    end
+})
 
 
 -- Personal information chat command
@@ -759,6 +915,20 @@ core.register_chatcommand('mythirst', {
         end
     end
 })
+core.register_chatcommand('mypee', {
+    params = 'name',
+    description = S('Show own pee value'),
+    privs = { interact = true },
+    func = function (caller)
+        local player_pee = f.get_data(caller, a.pee_value)
+        local pee_disabled = f.pee_disabled(caller)
+        if pee_disabled then
+            chat_send(caller, S('Your pee is disabled'))
+        else
+            chat_send(caller, S('Your pee value is @1', player_pee))
+        end
+    end
+})
 
 
 core.register_chatcommand('defecate', {
@@ -774,5 +944,18 @@ core.register_chatcommand('defecate', {
 		f.defecate(caller, nil, 'potty trained')
 	end,
 })
+core.register_chatcommand('urinate', {
+	params = 'name',
+	privs  = {interact=true,},
+	func   = function(caller)
+		assert (caller ~= nil)
+		local current_pee = f.get_data(caller, a.pee_value)
+		if current_pee <= 0 then
+			minetest.chat_send_player(caller, "Your bladder is empty!")
+			return
+		end
+		f.urinate(caller, nil, 'potty trained')
+	end,
+})
+
 -- TODO allow sleep without bed? i.e., may cause injury in general, and also temperature damage
--- TODO urinate
