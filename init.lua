@@ -71,6 +71,27 @@ local get = function (setting, default)
     return world_specific_setting or global_setting or default
 end
 
+local function get_default_thirst_bar_image()
+    local image_claycrafter = 'claycrafter_glass_of_water_inv.png'
+    local image_farming     = 'farming_water_glass.png'
+
+    local has_claycrafter   = (minetest.get_modpath('claycrafter') ~= nil)
+    local has_farming       = (minetest.get_modpath('farming')     ~= nil) -- false positive: default farming
+    if not has_claycrafter and not has_farming then return ''                end
+
+    local glass_claycrafter = minetest.registered_items['claycrafter:glass_of_water']
+    local glass_farming     = minetest.registered_items['farming:glass_water']
+    has_claycrafter         = has_claycrafter and glass_claycrafter ~= nil -- sanity check
+    has_farming             = (has_farming and       glass_farming ~= nil) -- either we have farming_redo or it's been monkey-patched by claycrafter
+
+    local is_same           = (glass_claycrafter == glass_farming)         -- detect monkey-patch
+    --has_claycrafter       = (has_claycrafter and not is_same)            -- detect vanilla claycrafter
+    has_farming             = (has_farming     and not is_same)
+
+    if has_farming                             then return image_farming     end
+    assert(has_claycrafter)
+    return image_claycrafter
+end
 
 -- Global hunger_ng table that will be used to pass around variables and use
 -- them later in the game. The table is not to be used by mods. Mods should
@@ -186,7 +207,8 @@ hunger_ng = {
             maximum             = tonumber(   get('sleep_maximum',    20)),
 	},
 	thirst_bar = {
-	    image               =             get('sleep_bar_image',     'claycrafter_glass_of_water_inv.png'),
+	    --image               =             get('thirst_bar_image',     'claycrafter_glass_of_water_inv.png'),
+	    image               =             get('thirst_bar_image',    get_default_thirst_bar_image()),
 	    use                 = core.is_yes(get('use_thirst_bar',      true)),
 	    force_builtin_image =             get('force_builtin_image', false),
 	},

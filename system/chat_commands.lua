@@ -10,9 +10,9 @@ local S = hunger_ng.configuration.translator
 -- Localize Luanto
 local chat_send = core.chat_send_player
 local log = core.log
-local player_exists = core.player_exists
-local get_player_by_name = core.get_player_by_name
-local get_connected_players = core.get_connected_players
+--local player_exists = core.player_exists                 -- monkey-patch
+--local get_player_by_name = core.get_player_by_name       -- monkey-patch
+--local get_connected_players = core.get_connected_players -- monkey-patch
 
 
 -- Set hunger to given value
@@ -27,7 +27,7 @@ local get_connected_players = core.get_connected_players
 local set_hunger = function (name, value, caller)
     local message = ''
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -57,7 +57,7 @@ end
 local set_poop = function (name, value, caller)
     local message = ''
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -87,7 +87,7 @@ end
 local set_sleep = function (name, value, caller)
     local message = ''
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -117,7 +117,7 @@ end
 local set_thirst = function (name, value, caller)
     local message = ''
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -147,7 +147,7 @@ end
 local set_pee = function (name, value, caller)
     local message = ''
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -189,7 +189,7 @@ end
 local change_hunger = function (name, value, caller)
     local message = ''
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -218,7 +218,7 @@ end
 local change_poop = function (name, value, caller)
     local message = ''
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -247,7 +247,7 @@ end
 local change_sleep = function (name, value, caller)
     local message = ''
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -276,7 +276,7 @@ end
 local change_thirst = function (name, value, caller)
     local message = ''
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -305,7 +305,7 @@ end
 local change_pee = function (name, value, caller)
     local message = ''
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -345,7 +345,7 @@ local toggle_hunger = function (name, value, caller)
     local action = ''
     local name = name == '' and caller or name
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -374,7 +374,7 @@ local toggle_poop = function (name, value, caller)
     local action = ''
     local name = name == '' and caller or name
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -403,7 +403,7 @@ local toggle_sleep = function (name, value, caller)
     local action = ''
     local name = name == '' and caller or name
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -432,7 +432,7 @@ local toggle_thirst = function (name, value, caller)
     local action = ''
     local name = name == '' and caller or name
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -461,7 +461,7 @@ local toggle_pee = function (name, value, caller)
     local action = ''
     local name = name == '' and caller or name
 
-    if not get_player_by_name(name) then
+    if not core.get_player_by_name(name) then
         chat_send(caller, S('The player @1 is not online', name))
         return
     end
@@ -499,8 +499,8 @@ end
 local get_hunger = function(name, caller)
     local message = ''
 
-    if name == '' then name = get_connected_players()
-    else name = { get_player_by_name(name) } end
+    if name == '' then name = core.get_connected_players()
+    else name = { core.get_player_by_name(name) } end
 
     for _,player in pairs(name) do
         if player:is_player() then
@@ -531,8 +531,8 @@ end
 local get_poop = function(name, caller)
     local message = ''
 
-    if name == '' then name = get_connected_players()
-    else name = { get_player_by_name(name) } end
+    if name == '' then name = core.get_connected_players()
+    else name = { core.get_player_by_name(name) } end
 
     for _,player in pairs(name) do
         if player:is_player() then
@@ -563,8 +563,8 @@ end
 local get_sleep = function(name, caller)
     local message = ''
 
-    if name == '' then name = get_connected_players()
-    else name = { get_player_by_name(name) } end
+    if name == '' then name = core.get_connected_players()
+    else name = { core.get_player_by_name(name) } end
 
     for _,player in pairs(name) do
         if player:is_player() then
@@ -595,8 +595,8 @@ end
 local get_thirst = function(name, caller)
     local message = ''
 
-    if name == '' then name = get_connected_players()
-    else name = { get_player_by_name(name) } end
+    if name == '' then name = core.get_connected_players()
+    else name = { core.get_player_by_name(name) } end
 
     for _,player in pairs(name) do
         if player:is_player() then
@@ -627,8 +627,8 @@ end
 local get_pee = function(name, caller)
     local message = ''
 
-    if name == '' then name = get_connected_players()
-    else name = { get_player_by_name(name) } end
+    if name == '' then name = core.get_connected_players()
+    else name = { core.get_player_by_name(name) } end
 
     for _,player in pairs(name) do
         if player:is_player() then
@@ -688,7 +688,7 @@ core.register_chatcommand('hunger', {
         local value = pt[3] or ''
 
         -- Name parameter missing
-        if not player_exists(name) and tonumber(name) and value == '' then
+        if not core.player_exists(name) and tonumber(name) and value == '' then
             value = name
             name = caller
         end
@@ -724,7 +724,7 @@ core.register_chatcommand('poop', {
         local value = pt[3] or ''
 
         -- Name parameter missing
-        if not player_exists(name) and tonumber(name) and value == '' then
+        if not core.player_exists(name) and tonumber(name) and value == '' then
             value = name
             name = caller
         end
@@ -760,7 +760,7 @@ core.register_chatcommand('sleep', {
         local value = pt[3] or ''
 
         -- Name parameter missing
-        if not player_exists(name) and tonumber(name) and value == '' then
+        if not core.player_exists(name) and tonumber(name) and value == '' then
             value = name
             name = caller
         end
@@ -796,7 +796,7 @@ core.register_chatcommand('thirst', {
         local value = pt[3] or ''
 
         -- Name parameter missing
-        if not player_exists(name) and tonumber(name) and value == '' then
+        if not core.player_exists(name) and tonumber(name) and value == '' then
             value = name
             name = caller
         end
@@ -832,7 +832,7 @@ core.register_chatcommand('pee', {
         local value = pt[3] or ''
 
         -- Name parameter missing
-        if not player_exists(name) and tonumber(name) and value == '' then
+        if not core.player_exists(name) and tonumber(name) and value == '' then
             value = name
             name = caller
         end

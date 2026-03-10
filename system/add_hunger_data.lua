@@ -8,9 +8,14 @@ local S = hunger_ng.configuration.translator
 
 
 -- Localize Luanti
-local registered_items = core.registered_items
-local override_item = core.override_item
+local registered_items = core.registered_items -- monkey-patch ? TODO ia_counterfeit ?
+local override_item = core.override_item       -- monkey-patch ?
 
+local function get_h2o(id, default) -- claycrafter
+    local item = registered_items[id]
+    assert(item ~= nil)
+    return (item['h2o'] or default)
+end
 
 -- Add custom _hunger_ng attribute to items
 --
@@ -35,6 +40,7 @@ local override_item = core.override_item
 --
 -- @param id   The ID of the item to be modified.
 -- @param data The data table as described
+
 hunger_ng.functions.add_hunger_data = function (id, data)
     if registered_items[id] == nil then return end
     if registered_items[id]._hunger_ng ~= nil then return end
@@ -47,15 +53,20 @@ hunger_ng.functions.add_hunger_data = function (id, data)
     local returns = data.returns or false
     local timeout = data.timeout or s.hunger.timeout
 
-    local digests  = data.digests
+    local digests    = data.digests
     if digests == nil then
-        digests    = math.abs(satiates)
+        digests      = math.abs(satiates)
     end
-    local rests    = data.rests    or 0
-    local quenches = data.quenches or 0
-    local hydrates = data.hydrates
+    local rests      = data.rests    or 0
+    local quenches   = data.quenches or get_h2o(id, 0)
+    local hydrates   = data.hydrates
     if hydrates == nil then
-        hydrates     = math.abs(quenches)
+	local h2o    = get_h2o(id, nil)
+	if h2o  ~= nil then
+            hydrates = math.abs(h2o)
+	else
+            hydrates = math.abs(quenches)
+        end
     end
 
     if satiates > 0 then

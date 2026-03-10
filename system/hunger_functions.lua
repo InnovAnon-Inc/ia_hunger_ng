@@ -8,8 +8,8 @@ local S = hunger_ng.configuration.translator
 
 -- Localize Luanti
 local core_log = core.log
-local get_player_by_name = core.get_player_by_name
-local get_current_modname = core.get_current_modname
+--local get_player_by_name = core.get_player_by_name -- monkey-patches
+--local get_current_modname = core.get_current_modname -- monkey-patches
 
 
 -- Gets and returns the given player-related data
@@ -23,7 +23,7 @@ local get_current_modname = core.get_current_modname
 -- @param as_string  Optionally return the value of the field as string
 -- @return bool|string|number
 local get_data = function (playername, field, as_string)
-    local player = get_player_by_name(playername)
+    local player = core.get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
     --if not player then return false end
     assert(player ~= nil)
@@ -53,7 +53,7 @@ end
 -- @param value      The value to set the field to
 -- @return void
 local set_data = function (playername, field, value)
-    local player = get_player_by_name(playername)
+    local player = core.get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
     --if not player then return false end
     assert(player ~= nil)
@@ -242,7 +242,7 @@ end
 -- @param playername The name of the player whose hunger value is to be get
 -- @return table     The table as described
 hunger_ng.functions.get_hunger_information = function (playername)
-    local player = get_player_by_name(playername)
+    local player = core.get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
     --if not player then return { invalid = true, player_name = playername } end
     assert(player)
@@ -361,7 +361,7 @@ end
 -- @param playername The name of a player whose health value should be altered
 -- @param change     The health change (can be negative to damage the player)
 hunger_ng.functions.alter_health = function (playername, change, reason)
-    local player = get_player_by_name(playername)
+    local player = core.get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
     local hp_max = player:get_properties().hp_max
 
@@ -386,7 +386,7 @@ end
 -- @param playername The name of a player whose hunger value should be altered
 -- @param change     The hunger change (can be negative to make player hungry)
 hunger_ng.functions.alter_hunger = function (playername, change, reason)
-    local player = get_player_by_name(playername)
+    local player = core.get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
 
     --if player == nil then return end
@@ -410,7 +410,7 @@ hunger_ng.functions.alter_hunger = function (playername, change, reason)
     debug_log(playername, 'hunger', current_hunger, new_hunger, change, reason)
 end
 hunger_ng.functions.alter_poop = function (playername, change, reason)
-    local player = get_player_by_name(playername)
+    local player = core.get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
 
     --if player == nil then return end
@@ -465,7 +465,7 @@ hunger_ng.functions.defecate = function(playername, change, reason)
 	ia_pooper.defecate(playername)
 end
 hunger_ng.functions.alter_sleep = function (playername, change, reason)
-    local player = get_player_by_name(playername)
+    local player = core.get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
 
     --if player == nil then return end
@@ -490,7 +490,7 @@ hunger_ng.functions.alter_sleep = function (playername, change, reason)
 end
 -- TODO allow sleep without bed? i.e., may cause injury in general, and also temperature damage
 hunger_ng.functions.alter_thirst = function (playername, change, reason)
-    local player = get_player_by_name(playername)
+    local player = core.get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
 
     --if player == nil then return end
@@ -514,7 +514,7 @@ hunger_ng.functions.alter_thirst = function (playername, change, reason)
     debug_log(playername, 'thirst', current_thirst, new_thirst, change, reason)
 end
 hunger_ng.functions.alter_pee = function (playername, change, reason)
-    local player = get_player_by_name(playername)
+    local player = core.get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
 
     --if player == nil then return end
@@ -597,7 +597,7 @@ hunger_ng.set_effect = function (playername, effect, setting)
     if attribute == false then
         core_log('warning', ('+t +m tried to set +v for +p'):gsub('+.', {
             ['+t'] = '[hunger_ng]',
-            ['+m'] = get_current_modname(),
+            ['+m'] = core.get_current_modname(),
             ['+v'] = 'unknown effect '..effect,
             ['+p'] = playername
         }))
@@ -609,7 +609,7 @@ hunger_ng.set_effect = function (playername, effect, setting)
         set_data(playername, attribute, setting)
         core_log('verbose', ('+t +m sets +a to +v for +p'):gsub('+.', {
             ['+t'] = '[hunger_ng]',
-            ['+m'] = get_current_modname(),
+            ['+m'] = core.get_current_modname(),
             ['+a'] = attribute,
             ['+v'] = setting,
             ['+p'] = playername
@@ -628,7 +628,7 @@ hunger_ng.functions.poop_disabled    = poop_disabled
 hunger_ng.functions.configure_poop   = configure_poop
 hunger_ng.functions.sleep_disabled   = sleep_disabled
 hunger_ng.functions.configure_sleep  = configure_sleep
-hunger_ng.functions.thirst_disabled  = sleep_disabled
-hunger_ng.functions.configure_thirst = configure_sleep
+hunger_ng.functions.thirst_disabled  = thirst_disabled
+hunger_ng.functions.configure_thirst = configure_thirst
 hunger_ng.functions.pee_disabled     = pee_disabled
 hunger_ng.functions.configure_pee    = configure_pee

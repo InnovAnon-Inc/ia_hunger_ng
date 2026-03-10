@@ -17,7 +17,7 @@ local digest_interval           = hunger_ng.settings.timers.digest
 local hydrate_interval          = hunger_ng.settings.timers.hydrate
 
 -- Localize Luanti
-local chat_send = core.chat_send_player
+local chat_send = core.chat_send_player -- monkey-patch ?
 local core_log = core.log
 
 

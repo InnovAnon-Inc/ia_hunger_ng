@@ -57,7 +57,7 @@ local use_thirst_bar            = hunger_ng.settings.thirst_bar.use
 
 -- Localize Luanti
 is_yes = core.is_yes
-get_connected_players = core.get_connected_players
+--get_connected_players = core.get_connected_players -- monkey-patch
 
 -- Initiate globalstep timers
 local base_timer   = 0
@@ -96,7 +96,7 @@ core.register_globalstep(function(dtime)
   --
   -- If the value and the timer for the corresponding attribute are not zero
   -- (value) and zero (timer) then the alteration of that attribute is executed.
-  for _,player in ipairs(get_connected_players()) do -- TODO handle mobs
+  for _,player in ipairs(core.get_connected_players()) do -- TODO handle mobs
   --for _,player in ipairs(ia_names.get_all_actors()) do -- TODO handle mobs
     --player = fakelib.get_player_interface(player)
     if player:is_player() then
@@ -250,7 +250,7 @@ end
 -- Show/hide hunger bar on player breath status or functionality status
 if use_hunger_bar then
   core.register_globalstep(function(dtime)
-    for _,player in ipairs(get_connected_players()) do
+    for _,player in ipairs(core.get_connected_players()) do
       if player:is_player() then
         local player_name = player:get_player_name()
         local bar_id      = get_data(player_name, hunger_bar_id)
@@ -268,7 +268,7 @@ if use_hunger_bar then
 end
 if use_poop_bar then
   core.register_globalstep(function(dtime)
-    for _,player in ipairs(get_connected_players()) do
+    for _,player in ipairs(core.get_connected_players()) do
       if player:is_player() then
         local player_name = player:get_player_name()
         local bar_id      = get_data(player_name, poop_bar_id)
@@ -287,7 +287,7 @@ if use_poop_bar then
 end
 if use_sleep_bar then
   core.register_globalstep(function(dtime)
-    for _,player in ipairs(get_connected_players()) do
+    for _,player in ipairs(core.get_connected_players()) do
       if player:is_player() then
         local player_name = player:get_player_name()
         local bar_id      = get_data(player_name, sleep_bar_id)
@@ -308,7 +308,7 @@ if use_sleep_bar then
 end
 if use_thirst_bar then
   core.register_globalstep(function(dtime)
-    for _,player in ipairs(get_connected_players()) do
+    for _,player in ipairs(core.get_connected_players()) do
       if player:is_player() then
         local player_name = player:get_player_name()
         local bar_id      = get_data(player_name, thirst_bar_id)
