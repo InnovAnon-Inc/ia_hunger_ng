@@ -452,17 +452,17 @@ hunger_ng.functions.defecate = function(playername, change, reason)
 	assert(change > 0)
 	f.alter_poop(playername, -change, reason)
 	if change < current_poop then -- shit yourself
-		ia_pooper.play_rumble_sound(playername)
+		pooper.play_rumble_sound(playername)
 		return
 	end
 	assert(change >= current_poop)
 	local poop_below = e.digest.below
 	if change < poop_below then -- not enough
-		ia_pooper.play_rumble_sound(playername)
+		pooper.play_rumble_sound(playername)
 		return
 	end
 	assert(change >= poop_below)
-	ia_pooper.defecate(playername)
+	pooper.defecate(playername)
 end
 hunger_ng.functions.alter_sleep = function (playername, change, reason)
     local player = core.get_player_by_name(playername)

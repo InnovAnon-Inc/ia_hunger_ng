@@ -81,16 +81,21 @@ local function get_default_thirst_bar_image()
 
     local glass_claycrafter = minetest.registered_items['claycrafter:glass_of_water']
     local glass_farming     = minetest.registered_items['farming:glass_water']
-    has_claycrafter         = has_claycrafter and glass_claycrafter ~= nil -- sanity check
-    has_farming             = (has_farming and       glass_farming ~= nil) -- either we have farming_redo or it's been monkey-patched by claycrafter
-
-    local is_same           = (glass_claycrafter == glass_farming)         -- detect monkey-patch
-    --has_claycrafter       = (has_claycrafter and not is_same)            -- detect vanilla claycrafter
-    has_farming             = (has_farming     and not is_same)
-
-    if has_farming                             then return image_farming     end
-    assert(has_claycrafter)
-    return image_claycrafter
+    local glass_pb          = minetest.registered_items['placeable_buckets:jcu_water']
+    if ia_util.has_placeable_buckets_redo() then return image_claycrafter end
+    if ia_util.has_farming_redo()           then return image_farming     end
+    if ia_util.has_claycrafter_redo()       then return image_claycrafter end
+    return '' -- TODO
+--    has_claycrafter         = has_claycrafter and glass_claycrafter ~= nil -- sanity check
+--    has_farming             = (has_farming and       glass_farming ~= nil) -- either we have farming_redo or it's been monkey-patched by claycrafter
+--
+--    local is_same           = (glass_claycrafter == glass_farming)         -- detect monkey-patch
+--    --has_claycrafter       = (has_claycrafter and not is_same)            -- detect vanilla claycrafter
+--    has_farming             = (has_farming     and not is_same)
+--
+--    if has_farming                             then return image_farming     end
+--    --assert(has_claycrafter)
+--    return image_claycrafter
 end
 
 -- Global hunger_ng table that will be used to pass around variables and use
@@ -341,6 +346,7 @@ local api_functions = {
         get_data = hunger_ng.functions.get_data,
         set_data = hunger_ng.functions.set_data
     },
+    mod              = 'ia',
 }
 
 

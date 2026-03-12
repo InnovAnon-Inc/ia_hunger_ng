@@ -1,6 +1,6 @@
 -- ia_hunger_ng/interoperability/pooper.lua
 
-assert(ia_pooper ~= nil)
+assert(ia_util.has_pooper_redo())
 local add = hunger_ng.add_hunger_data
 
 add('pooper:poop_turd', {
