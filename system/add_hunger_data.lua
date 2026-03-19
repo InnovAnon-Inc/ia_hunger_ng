@@ -25,13 +25,14 @@ end
 -- The data table has to be the following.
 --
 --     {
---         heals    = n,
---         satiates = n,
---         digests  = n|nil,
---         rests    = n,
---         quenches = n,
---         hydrates = n|nil,
---         returns  = 'id'
+--         heals     = n,
+--         satiates  = n,
+--         digests   = n|nil,
+--         rests     = n,
+--         quenches  = n,
+--         hydrates  = n|nil,
+--         weening   = n|nil,
+--         returns   = 'id'
 --     }
 --
 -- Where n is a number (can be negative to damage the player or make the
@@ -62,12 +63,16 @@ hunger_ng.functions.add_hunger_data = function (id, data)
     local hydrates   = data.hydrates
     if hydrates == nil then
 	local h2o    = get_h2o(id, nil)
+	--local juice  = get_juice(id, nil)
+	--if juice ~= nil then
+	--    hydrates = math.abs(juice)
 	if h2o  ~= nil then
             hydrates = math.abs(h2o)
 	else
             hydrates = math.abs(quenches)
         end
     end
+    local weens = (data.weening or -(digests or hydrates)) -- TODO
 
     if satiates > 0 then
         info = info..'\n'..S('Satiates: @1', satiates)
@@ -103,6 +108,14 @@ hunger_ng.functions.add_hunger_data = function (id, data)
     if     hydrates >  0 then
         info                             = info..'\n'..S('Hydrates: @1',   hydrates)
         hunger_ng.food_items.hydrating   = hunger_ng.food_items.hydrating   + 1
+    end
+
+    if     weens > 0 then
+        info                             = info..'\n'..S('Weening: @1', weens)
+        hunger_ng.food_items.weening     = hunger_ng.food_items.weening + 1
+    elseif weens < 0 then
+        info                             = info..'\n'..S('Increases Lactation: @1', math.abs(weens))
+        hunger_ng.food_items.lactating   = hunger_ng.food_items.lactating   + 1
     end
 
     if heals > 0 then

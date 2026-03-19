@@ -116,6 +116,8 @@ hunger_ng = {
 	quenching   = 0, -- makes you less thirsty
 	dehydrating = 0, -- makes you more thirsty
 	hydrating   = 0, -- makes you pee
+	lactating   = 0, -- makes you lactate more
+	weening     = 0, -- makes you lactate less
 --	warming     = 0,
 --	cooling     = 0,
     },
@@ -152,6 +154,12 @@ hunger_ng = {
 	pee_disabled       = 'hunger_ng:pee_disabled',
 	effect_hydrate     = 'hunger_ng:effect_hydrate',
 
+	milk_bar_id        = 'hunger_ng:milk_bar_id',
+	milk_value         = 'hunger_ng:milk_value',
+	milking_timestamp  = 'hunger_ng:milking_timestamp',
+	milk_disabled      = 'hunger_ng:milk_disabled',
+	effect_lactate     = 'hunger_ng:effect_lactate',
+
 --	heat_bar_id         = 'hunger_ng:heat_bar_id',
 --	heat_value          = 'hunger_ng:heat_value',
 --	heating_timestamp   = 'hunger_ng:heating_timestamp',
@@ -181,6 +189,7 @@ hunger_ng = {
 	    thirst  = tonumber(get('timer_thirst',  60)),
 	    hydrate = tonumber(get('timer_digest',   3)), -- TODO faster (realistic)
 --	    heat   = tonumber(get('timer_heat',     0.5)),
+	    lactate = tonumber(get('timer_digest',   3)), -- TODO (realistic)
         },
         hunger = {
             timeout = tonumber(get('hunger_timeout', 0)),
@@ -234,6 +243,17 @@ hunger_ng = {
             start_with          = tonumber(   get('pee_start_with',  1)),
             maximum             = tonumber(   get('pee_maximum',    20)),
         },
+        milk_bar  = {
+            image               =             get('milk_bar_image',      'default_snowball.png'), -- TODO
+            use                 = core.is_yes(get('use_milk_bar',        true)),
+            force_builtin_image =             get('force_builtin_image', false),
+        },
+        milk      = {
+            timeout             = tonumber(   get('milk_timeout',     0)),
+            persistent          = core.is_yes(get('milk_persistent', true)),
+            start_with          = tonumber(   get('milk_start_with',  1)),
+            maximum             = tonumber(   get('milk_maximum',    20)),
+        },
 --	heat_bar   = {
 --	    image               =             get('heat_bar_image',      ...), -- TODO
 --	    use                 = core.is_yes(get('use_heat_bar',        true)),
@@ -278,6 +298,11 @@ hunger_ng = {
             amount = tonumber(   get('pee_amount', 1)),
             below  = tonumber(   get('pee_below',  1)), -- minimum amount to make a droplet
 	},
+	lactate    = {
+            above  = tonumber(   get('milk_above', 19)),
+            amount = tonumber(   get('milk_amount', 1)),
+            below  = tonumber(   get('milk_below',  1)), -- minimum amount to make a droplet
+	},
 --        heat       = {
 --            below  = tonumber(   get('heat_below',   0)),
 --            above  = tonumber(   get('heat_above',  45)),
@@ -320,11 +345,13 @@ local api_functions = {
     alter_sleep      = hunger_ng.functions.alter_sleep,
     alter_thirst     = hunger_ng.functions.alter_thirst,
     alter_pee        = hunger_ng.functions.alter_pee,
+    alter_milk       = hunger_ng.functions.alter_milk,
     configure_hunger = hunger_ng.functions.configure_hunger,
     configure_poop   = hunger_ng.functions.configure_poop,
     configure_sleep  = hunger_ng.functions.configure_sleep,
     configure_thirst = hunger_ng.functions.configure_thirst,
     configure_pee    = hunger_ng.functions.configure_pee,
+    configure_milk   = hunger_ng.functions.configure_milk,
     set_effect = hunger_ng.set_effect,
     get_hunger_information = hunger_ng.functions.get_hunger_information,
     --get_poop_information = hunger_ng.functions.get_poop_information,
@@ -333,8 +360,10 @@ local api_functions = {
     sleep_bar_image  = hunger_ng.settings.sleep_bar.image,
     thirst_bar_image = hunger_ng.settings.thirst_bar.image,
     pee_bar_image    = hunger_ng.settings.pee_bar.image,
+    milk_bar_image   = hunger_ng.settings.milk_bar.image,
     poop_maximum     = hunger_ng.settings.poop.maximum,
     pee_maximum      = hunger_ng.settings.pee.maximum,
+    milk_maximum     = hunger_ng.settings.milk.maximum,
     on_joinplayer    = hunger_ng.functions.on_joinplayer,
     on_dieplayer     = hunger_ng.functions.on_dieplayer,
     on_leaveplayer   = hunger_ng.functions.on_leaveplayer,

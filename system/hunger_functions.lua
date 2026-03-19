@@ -164,6 +164,16 @@ local pee_disabled = function (playername)
     --return false
     return thirst_disabled(playername)
 end
+local milk_disabled = function (playername)
+    local interact = core.check_player_privs(playername, { interact=true })
+    --local interact = ia_names.check_actor_privs(playername, { interact=true })
+    local disabled = get_data(playername, a.milk_disabled)
+    assert(interact)
+    assert(not core.is_yes(disabled))
+    if core.is_yes(disabled) or not interact then return true end
+    --return false
+    return false
+end
 
 
 -- Configures hunger effects for the player
@@ -232,6 +242,17 @@ local configure_pee = function (playername, action)
     else assert(false)
     end
 end
+local configure_milk = function (playername, action)
+    --if not action then return end
+    assert(action)
+
+    if action == 'enable' then
+        set_data(playername, a.milk_disabled, 0)
+    elseif action == 'disable' then
+        set_data(playername, a.milk_disabled, 1)
+    else assert(false)
+    end
+end
 
 
 -- Get the current hunger information
@@ -252,11 +273,13 @@ hunger_ng.functions.get_hunger_information = function (playername)
     local last_slept     = get_data(playername, a.sleeping_timestamp) or 0
     local last_drank     = get_data(playername, a.drinking_timestamp) or 0
     local last_peed      = get_data(playername, a.peeing_timestamp)   or 0
+    local last_milked    = get_data(playername, a.milking_timestamp)  or 0
     local current_hunger = get_data(playername, a.hunger_value)
     local current_poop   = get_data(playername, a.poop_value)
     local current_sleep  = get_data(playername, a.sleep_value)
     local current_thirst = get_data(playername, a.thirst_value)
     local current_pee    = get_data(playername, a.pee_value)
+    local current_milk   = get_data(playername, a.milk_value)
     local player_properties = player:get_properties()
 
     local e_heal = get_data(playername, a.effect_heal, true) == 'enabled'
@@ -266,6 +289,7 @@ hunger_ng.functions.get_hunger_information = function (playername)
     local e_sleep     = get_data(playername, a.effect_sleep,     true) == 'enabled'
     local e_dehydrate = get_data(playername, a.effect_dehydrate, true) == 'enabled'
     local e_hydrate   = get_data(playername, a.effect_hydrate,   true) == 'enabled'
+    local e_lactate   = get_data(playername, a.effect_lactate,   true) == 'enabled'
 
     return {
         player_name = playername,
@@ -274,7 +298,7 @@ hunger_ng.functions.get_hunger_information = function (playername)
             ceiled = math.ceil(current_hunger),
             disabled = hunger_disabled(playername),
             exact = current_hunger,
-            enabled = e_heal,
+            enabled = e_heal, -- e_hunger ?
         },
         maximum = {
             hunger = s.hunger.maximum,
@@ -285,33 +309,51 @@ hunger_ng.functions.get_hunger_information = function (playername)
 	    sleep  = s.sleep.maximum,
 	    thirst = s.thirst.maximum,
 	    pee    = s.pee.maximum,
+	    milk   = s.milk.maximum,
         },
         effects = {
-            starving = {
+            starving       = {
                 enabled = e_starve,
-                status = current_hunger < e.starve.below
+                status  = current_hunger < e.starve.below,
+		below   = e.starve.below,
             },
-            healing = {
+            healing        = {
                 enabled = e_heal,
-                status = current_hunger > e.heal.above
+                status  = current_hunger > e.heal.above,
+		above   = e.heal.above,
             },
             current_breath = player:get_breath(),
 
-	    digesting = {
+	    digesting      = {
                 enabled = e_digest,
 		status  = current_poop   > e.digest.above,
+		above   = e.digest.above,
+		able    = current_poop   > e.digest.below,
+		below   = e.digest.below,
             },
 	    sleeping  = {
                 enabled = e_sleep,
 		status  = current_sleep  < e.sleep.below,
+		below   = e.sleep.below,
             },
-	    dehyrate  = {
+	    dehydrate = {
                 enabled = e_dehydrate,
 		status  = current_thirst < e.dehydrate.below,
+		below   = e.dehydrate.below,
             },
 	    hydrate   = {
                 enabled = e_hydrate,
 		status  = current_pee    > e.hydrate.above,
+		above   = e.hydrate.above,
+		able    = current_pee    > e.hydrate.below,
+		below   = e.hydrate.below,
+            },
+	    lactate   = {
+                enabled = e_lactate,
+		status  = current_milk   > e.lactate.above,
+		above   = e.lactate.above,
+		able    = current_milk   > e.lactate.below,
+		below   = e.lactate.below,
             },
         },
         timestamps = {
@@ -322,6 +364,7 @@ hunger_ng.functions.get_hunger_information = function (playername)
 	    last_slept  = tonumber(last_slept),
 	    last_drank  = tonumber(last_drank),
 	    last_peed   = tonumber(last_peed),
+	    last_milked = tonumber(last_milked),
         },
 
         poop   = {
@@ -348,9 +391,16 @@ hunger_ng.functions.get_hunger_information = function (playername)
         pee    = {
             floored  = math.floor(current_pee),
             ceiled   = math.ceil (current_pee),
-            disabled = pee_disabled  (playername),
+            disabled = pee_disabled   (playername),
             exact    = current_pee,
             enabled  = e_hydrate,
+        },
+        milk   = {
+            floored  = math.floor(current_milk),
+            ceiled   = math.ceil (current_milk),
+            disabled = milk_disabled  (playername),
+            exact    = current_milk,
+            enabled  = e_lactate,
         },
     }
 end
@@ -568,6 +618,63 @@ hunger_ng.functions.urinate = function(playername, change, reason)
 	assert(change >= pee_below)
 	ia_peeer.urinate(playername, change)
 end
+hunger_ng.functions.alter_milk = function (playername, change, reason)
+    local player = core.get_player_by_name(playername)
+    --local player = ia_names.get_actor_by_name(playername)
+
+    --if player == nil then return end
+    assert(player ~= nil)
+    --if milk_disabled(playername) then return end
+    assert(not milk_disabled(playername))
+
+    local current_milk = get_data(playername, a.milk_value)
+    local new_milk = current_milk + change
+    local bar_id = get_data(playername, a.milk_bar_id)
+
+    if new_milk > s.milk.maximum then new_milk = s.milk.maximum end
+    if new_milk < 0 then new_milk = 0 end
+
+    set_data(playername, a.milk_value, new_milk)
+
+    if s.milk_bar.use then
+        player:hud_change(bar_id, 'number', math.ceil(new_milk))
+    end
+
+    debug_log(playername, 'milk', current_milk, new_milk, change, reason)
+end
+hunger_ng.functions.alter_milk_soon = function (playername, change, reason, dt)
+	minetest.after(dt, function()
+		f.alter_milk(playername, change, reason)
+	end)
+end
+hunger_ng.functions.lactate = function(playername, change, reason)
+	assert(change == nil or change > 0)
+	local current_milk = get_data(playername, a.milk_value)
+--	if current_milk <= 0 then
+--		minetest.chat_send_player(player, "Your milkers are empty!")
+--		return
+--	end
+	assert(current_milk > 0)
+	if change == nil then
+		change = current_milk
+	end
+	assert(change > 0)
+	f.alter_milk(playername, -change, reason)
+	if change < current_milk then -- piss yourself
+		ia_milker.play_splatter_sound(playername)
+		return
+	end
+	assert(change >= current_milk)
+	local milk_below = e.lactate.below
+	if change < milk_below then -- not enough
+		ia_milker.play_zipper_sound(playername)
+		return
+	end
+	assert(change >= milk_below)
+	assert(playername ~= nil)
+	assert(change ~= nil)
+	ia_milker.lactate(playername, change)
+end
 
 
 
@@ -631,4 +738,6 @@ hunger_ng.functions.configure_sleep  = configure_sleep
 hunger_ng.functions.thirst_disabled  = thirst_disabled
 hunger_ng.functions.configure_thirst = configure_thirst
 hunger_ng.functions.pee_disabled     = pee_disabled
+hunger_ng.functions.milk_disabled    = milk_disabled
 hunger_ng.functions.configure_pee    = configure_pee
+hunger_ng.functions.configure_milk   = configure_milk

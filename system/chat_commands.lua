@@ -174,6 +174,36 @@ local set_pee = function (name, value, caller)
 
     log('action', '[hunger_ng] '..message)
 end
+local set_milk = function (name, value, caller)
+    local message = ''
+
+    if not core.get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.milk_disabled(name) then
+        chat_send(caller, S('Milk for @1 is disabled', name))
+        return
+    end
+
+    if value > s.milk.maximum then value = s.milk.maximum end
+    if value < 0 then value = 0 end
+
+    f.alter_milk(name, -s.milk.maximum, 'chat set 0')
+    f.alter_milk(name, value, 'chat set target')
+
+    if name ~= caller then
+        chat_send(caller, S('Milk for @1 set to @2', name, value))
+        chat_send(name, S('@1 set your milk to @2', caller, value))
+        message = caller..' sets milk for '..name..' to '..value
+    else
+        chat_send(caller, S('Milk set to @1', value))
+        message = caller..' sets own milk to '..value
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
 
 
 -- Change the hunger value
@@ -331,6 +361,36 @@ local change_pee = function (name, value, caller)
 
     log('action', '[hunger_ng] '..message)
 end
+local change_milk = function (name, value, caller)
+    local message = ''
+
+    if not core.get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.milk_disabled(name) then
+        chat_send(caller, S('Milk for @1 is disabled', name))
+        return
+    end
+
+    if value > s.milk.maximum then value = s.milk.maximum end
+    if value < -s.milk.maximum then value = -s.milk.maximum end
+
+    f.alter_milk(name, value, 'chat change')
+
+    if name ~= caller then
+        chat_send(caller, S('Milk for @1 changed by @2', name, value))
+        chat_send(name, S('@1 changed your milk by @2', caller, value))
+        message = caller..'changes milk for '..name..' by '..value
+    else
+        chat_send(caller, S('Milk changed by @1', value))
+        message = caller..' changes own milk by '..value
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
+
 
 
 -- Toggle hunger being enabled
@@ -485,6 +545,36 @@ local toggle_pee = function (name, value, caller)
 
     log('action', '[hunger_ng] '..message)
 end
+local toggle_milk = function (name, value, caller)
+    local message = ''
+    local action = ''
+    local name = name == '' and caller or name
+
+    if not core.get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.milk_disabled(name) then
+        hunger_ng.configure_milk(name, 'enable')
+        action = 'enabled'
+    else
+        hunger_ng.configure_milk(name, 'disable')
+        action = 'disabled'
+    end
+
+    if name ~= caller then
+        chat_send(caller, S('Milk for @1 was toggled', name))
+        chat_send(name, S('@1 toggled your milk', caller))
+        message = caller..' '..action..' milk for '..name
+    else
+        chat_send(caller, S('Own milk was toggled'))
+        message = caller..' '..action..' own milk'
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
+
 
 
 -- Get the hunger value
@@ -646,6 +736,38 @@ local get_pee = function(name, caller)
                 message = caller..' gets own pee value'
             else
                 message = caller..' gets pee value for '..player_name
+            end
+
+            log('action', '[hunger_ng] '..message)
+        end
+    end
+
+    if #name == 0 then
+        chat_send(caller, S('No player matches your criteria'))
+    end
+end
+local get_milk = function(name, caller)
+    local message = ''
+
+    if name == '' then name = core.get_connected_players()
+    else name = { core.get_player_by_name(name) } end
+
+    for _,player in pairs(name) do
+        if player:is_player() then
+            local player_name = player:get_player_name()
+            local player_milk = f.get_data(player_name, a.milk_value)
+            local milk_disabled = f.milk_disabled(player_name)
+
+            if not milk_disabled then
+                chat_send(caller, player_name..': '..player_milk)
+            else
+                chat_send(caller, player_name..': '..S('Milk is disabled'))
+            end
+
+            if player_name == caller then
+                message = caller..' gets own milk value'
+            else
+                message = caller..' gets milk value for '..player_name
             end
 
             log('action', '[hunger_ng] '..message)
@@ -856,6 +978,42 @@ core.register_chatcommand('pee', {
         else show_help(caller) end
     end
 })
+core.register_chatcommand('milk', {
+    params = '<set/change/get/toggle> <name> <value>',
+    description = S('Modify or get milk values'),
+    privs = { manage_hunger = true },
+    func = function (caller, parameters)
+        local pt= {}
+        for p in parameters:gmatch("%S+") do table.insert(pt, p) end
+        local action = pt[1] or ''
+        local name = pt[2] or ''
+        local value = pt[3] or ''
+
+        -- Name parameter missing
+        if not core.player_exists(name) and tonumber(name) and value == '' then
+            value = name
+            name = caller
+        end
+
+        -- Convert value to number or print error message when trying to set
+        -- a value but no proper value was given
+        if tonumber(value) then
+            value = tonumber(value)
+        else
+            if action ~= 'get' and action ~= 'toggle' then
+                show_help(caller)
+                return
+            end
+        end
+
+        -- Execute the corresponding function for the defined action
+        if     action == 'set' then set_milk(name, value, caller)
+        elseif action == 'change' then change_milk(name, value, caller)
+        elseif action == 'get' then get_milk(name, caller)
+        elseif action == 'toggle' then toggle_milk(name, value, caller)
+        else show_help(caller) end
+    end
+})
 
 
 -- Personal information chat command
@@ -929,6 +1087,20 @@ core.register_chatcommand('mypee', {
         end
     end
 })
+core.register_chatcommand('mymilk', {
+    params = 'name',
+    description = S('Show own milk value'),
+    privs = { interact = true },
+    func = function (caller)
+        local player_milk = f.get_data(caller, a.milk_value)
+        local milk_disabled = f.milk_disabled(caller)
+        if milk_disabled then
+            chat_send(caller, S('Your milk is disabled'))
+        else
+            chat_send(caller, S('Your milk value is @1', player_milk))
+        end
+    end
+})
 
 
 core.register_chatcommand('defecate', {
@@ -957,5 +1129,19 @@ core.register_chatcommand('urinate', {
 		f.urinate(caller, nil, 'potty trained')
 	end,
 })
+core.register_chatcommand('lactate', {
+	params = 'name',
+	privs  = {interact=true,},
+	func   = function(caller)
+		assert (caller ~= nil)
+		local current_milk = f.get_data(caller, a.milk_value)
+		if current_milk <= 0 then
+			minetest.chat_send_player(caller, "Your milkers are empty!")
+			return
+		end
+		f.lactate(caller, nil, 'milked')
+	end,
+})
+
 
 -- TODO allow sleep without bed? i.e., may cause injury in general, and also temperature damage
