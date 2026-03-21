@@ -53,6 +53,11 @@ end
 -- @param value      The value to set the field to
 -- @return void
 local set_data = function (playername, field, value)
+    assert(type(playername) == 'string')
+    --assert(type(field) == 'string', type(field))
+    --assert(type(value) == 'string', type(value))
+    assert(field ~= nil)
+    assert(value ~= nil)
     local player = core.get_player_by_name(playername)
     --local player = ia_names.get_actor_by_name(playername)
     --if not player then return false end
@@ -164,6 +169,16 @@ local pee_disabled = function (playername)
     --return false
     return thirst_disabled(playername)
 end
+local preggo_disabled = function (playername)
+    local interact = core.check_player_privs(playername, { interact=true })
+    --local interact = ia_names.check_actor_privs(playername, { interact=true })
+    local disabled = get_data(playername, a.preggo_disabled)
+    assert(interact)
+    assert(not core.is_yes(disabled))
+    if core.is_yes(disabled) or not interact then return true end
+    --return false
+    return false
+end
 local milk_disabled = function (playername)
     local interact = core.check_player_privs(playername, { interact=true })
     --local interact = ia_names.check_actor_privs(playername, { interact=true })
@@ -172,7 +187,7 @@ local milk_disabled = function (playername)
     assert(not core.is_yes(disabled))
     if core.is_yes(disabled) or not interact then return true end
     --return false
-    return false
+    return preggo_disabled(playername)
 end
 
 
@@ -253,6 +268,17 @@ local configure_milk = function (playername, action)
     else assert(false)
     end
 end
+local configure_preggo = function (playername, action)
+    --if not action then return end
+    assert(action)
+
+    if action == 'enable' then
+        set_data(playername, a.preggo_disabled, 0)
+    elseif action == 'disable' then
+        set_data(playername, a.preggo_disabled, 1)
+    else assert(false)
+    end
+end
 
 
 -- Get the current hunger information
@@ -274,12 +300,14 @@ hunger_ng.functions.get_hunger_information = function (playername)
     local last_drank     = get_data(playername, a.drinking_timestamp) or 0
     local last_peed      = get_data(playername, a.peeing_timestamp)   or 0
     local last_milked    = get_data(playername, a.milking_timestamp)  or 0
+    local last_preggoed  = get_data(playername, a.preggo_timestamp)   or 0 -- TODO conception or birth time ?
     local current_hunger = get_data(playername, a.hunger_value)
     local current_poop   = get_data(playername, a.poop_value)
     local current_sleep  = get_data(playername, a.sleep_value)
     local current_thirst = get_data(playername, a.thirst_value)
     local current_pee    = get_data(playername, a.pee_value)
     local current_milk   = get_data(playername, a.milk_value)
+    local current_preggo = get_data(playername, a.preggo_value)
     local player_properties = player:get_properties()
 
     local e_heal = get_data(playername, a.effect_heal, true) == 'enabled'
@@ -290,6 +318,7 @@ hunger_ng.functions.get_hunger_information = function (playername)
     local e_dehydrate = get_data(playername, a.effect_dehydrate, true) == 'enabled'
     local e_hydrate   = get_data(playername, a.effect_hydrate,   true) == 'enabled'
     local e_lactate   = get_data(playername, a.effect_lactate,   true) == 'enabled'
+    local e_procreate = get_data(playername, a.effect_procreate, true) == 'enabled'
 
     return {
         player_name = playername,
@@ -310,6 +339,7 @@ hunger_ng.functions.get_hunger_information = function (playername)
 	    thirst = s.thirst.maximum,
 	    pee    = s.pee.maximum,
 	    milk   = s.milk.maximum,
+	    preggo = s.preggo.maximum,
         },
         effects = {
             starving       = {
@@ -355,16 +385,24 @@ hunger_ng.functions.get_hunger_information = function (playername)
 		able    = current_milk   > e.lactate.below,
 		below   = e.lactate.below,
             },
+	    procreate = {
+                enabled = e_procreate,
+		status  = current_preggo   > e.procreate.above,
+		above   = e.procreate.above,
+		able    = current_preggo   > e.procreate.below,
+		below   = e.procreate.below,
+            },
         },
         timestamps = {
-            last_eaten = tonumber(last_eaten),
-            request = tonumber(os.time()),
+            last_eaten    = tonumber(last_eaten),
+            request       = tonumber(os.time()),
 
-	    last_pooped = tonumber(last_pooped),
-	    last_slept  = tonumber(last_slept),
-	    last_drank  = tonumber(last_drank),
-	    last_peed   = tonumber(last_peed),
-	    last_milked = tonumber(last_milked),
+	    last_pooped   = tonumber(last_pooped),
+	    last_slept    = tonumber(last_slept),
+	    last_drank    = tonumber(last_drank),
+	    last_peed     = tonumber(last_peed),
+	    last_milked   = tonumber(last_milked),
+	    last_preggoed = tonumber(last_preggoed),
         },
 
         poop   = {
@@ -401,6 +439,13 @@ hunger_ng.functions.get_hunger_information = function (playername)
             disabled = milk_disabled  (playername),
             exact    = current_milk,
             enabled  = e_lactate,
+        },
+        preggo = {
+            floored  = math.floor(current_preggo),
+            ceiled   = math.ceil (current_preggo),
+            disabled = preggo_disabled  (playername),
+            exact    = current_preggo,
+            enabled  = e_procreate,
         },
     }
 end
@@ -661,13 +706,13 @@ hunger_ng.functions.lactate = function(playername, change, reason)
 	assert(change > 0)
 	f.alter_milk(playername, -change, reason)
 	if change < current_milk then -- piss yourself
-		ia_milker.play_splatter_sound(playername)
+		--ia_milker.play_splatter_sound(playername)
 		return
 	end
 	assert(change >= current_milk)
 	local milk_below = e.lactate.below
 	if change < milk_below then -- not enough
-		ia_milker.play_zipper_sound(playername)
+		--ia_milker.play_zipper_sound(playername)
 		return
 	end
 	assert(change >= milk_below)
@@ -675,7 +720,60 @@ hunger_ng.functions.lactate = function(playername, change, reason)
 	assert(change ~= nil)
 	ia_milker.lactate(playername, change)
 end
+hunger_ng.functions.alter_preggo = function (playername, change, reason)
+    local player = core.get_player_by_name(playername)
+    --local player = ia_names.get_actor_by_name(playername)
 
+    --if player == nil then return end
+    assert(player ~= nil)
+    --if preggo_disabled(playername) then return end
+    assert(not preggo_disabled(playername))
+
+    local current_preggo = get_data(playername, a.preggo_value)
+    local new_preggo = current_preggo + change
+    local bar_id = get_data(playername, a.preggo_bar_id)
+
+    if new_preggo > s.preggo.maximum then new_preggo = s.preggo.maximum end
+    if new_preggo < 0 then new_preggo = 0 end
+
+    set_data(playername, a.preggo_value, new_preggo)
+
+    if s.preggo_bar.use then
+        player:hud_change(bar_id, 'number', math.ceil(new_preggo))
+    end
+
+    debug_log(playername, 'preggo', current_preggo, new_preggo, change, reason)
+end
+hunger_ng.functions.procreate = function(playername, change, reason)
+	assert(change == nil or change > 0)
+	local current_preggo = get_data(playername, a.preggo_value)
+--	if current_preggo <= 0 then
+--		minetest.chat_send_player(player, "Your womb is empty!")
+--		return
+--	end
+	assert(current_preggo > 0)
+	if change == nil then
+		change = current_preggo
+	end
+	assert(change > 0)
+	f.alter_preggo(playername, -change, reason)
+	if change < current_preggo then -- somehow become less pregnant
+		ia_breeder.play_splatter_sound(playername)
+		-- TODO set hp or spawn ketchup ?
+		return
+	end
+	assert(change >= current_preggo)
+	local preggo_below = e.procreate.below
+	if change < preggo_below then -- miscarriage
+		ia_breeder.play_splatter_sound(playername)
+		-- TODO set hp or spawn ketchup ?
+		return
+	end
+	assert(change >= preggo_below)
+	assert(playername ~= nil)
+	assert(change ~= nil)
+	ia_breeder.execute_birth(playername)
+end
 
 
 -- Set hunger effect metadata
@@ -741,3 +839,5 @@ hunger_ng.functions.pee_disabled     = pee_disabled
 hunger_ng.functions.milk_disabled    = milk_disabled
 hunger_ng.functions.configure_pee    = configure_pee
 hunger_ng.functions.configure_milk   = configure_milk
+hunger_ng.functions.preggo_disabled  = preggo_disabled
+hunger_ng.functions.configure_preggo = configure_preggo

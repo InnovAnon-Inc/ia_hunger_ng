@@ -204,6 +204,36 @@ local set_milk = function (name, value, caller)
 
     log('action', '[hunger_ng] '..message)
 end
+local set_preggo = function (name, value, caller)
+    local message = ''
+
+    if not core.get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.preggo_disabled(name) then
+        chat_send(caller, S('Pregnancy for @1 is disabled', name))
+        return
+    end
+
+    if value > s.preggo.maximum then value = s.preggo.maximum end
+    if value < 0 then value = 0 end
+
+    f.alter_preggo(name, -s.preggo.maximum, 'chat set 0')
+    f.alter_preggo(name, value, 'chat set target')
+
+    if name ~= caller then
+        chat_send(caller, S('Pregnancy for @1 set to @2', name, value))
+        chat_send(name, S('@1 set your pregnancy to @2', caller, value))
+        message = caller..' sets pregnancy for '..name..' to '..value
+    else
+        chat_send(caller, S('Pregnancy set to @1', value))
+        message = caller..' sets own pregnancy to '..value
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
 
 
 -- Change the hunger value
@@ -390,6 +420,36 @@ local change_milk = function (name, value, caller)
 
     log('action', '[hunger_ng] '..message)
 end
+local change_preggo = function (name, value, caller)
+    local message = ''
+
+    if not core.get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.preggo_disabled(name) then
+        chat_send(caller, S('Pregnancy for @1 is disabled', name))
+        return
+    end
+
+    if value > s.preggo.maximum then value = s.preggo.maximum end
+    if value < -s.preggo.maximum then value = -s.preggo.maximum end
+
+    f.alter_preggo(name, value, 'chat change')
+
+    if name ~= caller then
+        chat_send(caller, S('Pregnancy for @1 changed by @2', name, value))
+        chat_send(name, S('@1 changed your pregnancy by @2', caller, value))
+        message = caller..'changes pregnancy for '..name..' by '..value
+    else
+        chat_send(caller, S('Pregnancy changed by @1', value))
+        message = caller..' changes own pregnancy by '..value
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
+
 
 
 
@@ -574,6 +634,36 @@ local toggle_milk = function (name, value, caller)
 
     log('action', '[hunger_ng] '..message)
 end
+local toggle_preggo = function (name, value, caller)
+    local message = ''
+    local action = ''
+    local name = name == '' and caller or name
+
+    if not core.get_player_by_name(name) then
+        chat_send(caller, S('The player @1 is not online', name))
+        return
+    end
+
+    if f.preggo_disabled(name) then
+        hunger_ng.configure_preggo(name, 'enable')
+        action = 'enabled'
+    else
+        hunger_ng.configure_preggo(name, 'disable')
+        action = 'disabled'
+    end
+
+    if name ~= caller then
+        chat_send(caller, S('Pregnancy for @1 was toggled', name))
+        chat_send(name, S('@1 toggled your pregnancy', caller))
+        message = caller..' '..action..' pregnancy for '..name
+    else
+        chat_send(caller, S('Own pregnancy was toggled'))
+        message = caller..' '..action..' own pregnancy'
+    end
+
+    log('action', '[hunger_ng] '..message)
+end
+
 
 
 
@@ -768,6 +858,38 @@ local get_milk = function(name, caller)
                 message = caller..' gets own milk value'
             else
                 message = caller..' gets milk value for '..player_name
+            end
+
+            log('action', '[hunger_ng] '..message)
+        end
+    end
+
+    if #name == 0 then
+        chat_send(caller, S('No player matches your criteria'))
+    end
+end
+local get_preggo = function(name, caller)
+    local message = ''
+
+    if name == '' then name = core.get_connected_players()
+    else name = { core.get_player_by_name(name) } end
+
+    for _,player in pairs(name) do
+        if player:is_player() then
+            local player_name = player:get_player_name()
+            local player_preggo = f.get_data(player_name, a.preggo_value)
+            local preggo_disabled = f.preggo_disabled(player_name)
+
+            if not preggo_disabled then
+                chat_send(caller, player_name..': '..player_preggo)
+            else
+                chat_send(caller, player_name..': '..S('Pregnancy is disabled'))
+            end
+
+            if player_name == caller then
+                message = caller..' gets own pregnancy value'
+            else
+                message = caller..' gets pregnancy value for '..player_name
             end
 
             log('action', '[hunger_ng] '..message)
@@ -1014,6 +1136,42 @@ core.register_chatcommand('milk', {
         else show_help(caller) end
     end
 })
+core.register_chatcommand('pregnancy', {
+    params = '<set/change/get/toggle> <name> <value>',
+    description = S('Modify or get pregnancy values'),
+    privs = { manage_hunger = true },
+    func = function (caller, parameters)
+        local pt= {}
+        for p in parameters:gmatch("%S+") do table.insert(pt, p) end
+        local action = pt[1] or ''
+        local name = pt[2] or ''
+        local value = pt[3] or ''
+
+        -- Name parameter missing
+        if not core.player_exists(name) and tonumber(name) and value == '' then
+            value = name
+            name = caller
+        end
+
+        -- Convert value to number or print error message when trying to set
+        -- a value but no proper value was given
+        if tonumber(value) then
+            value = tonumber(value)
+        else
+            if action ~= 'get' and action ~= 'toggle' then
+                show_help(caller)
+                return
+            end
+        end
+
+        -- Execute the corresponding function for the defined action
+        if     action == 'set' then set_preggo(name, value, caller)
+        elseif action == 'change' then change_preggo(name, value, caller)
+        elseif action == 'get' then get_preggo(name, caller)
+        elseif action == 'toggle' then toggle_preggo(name, value, caller)
+        else show_help(caller) end
+    end
+})
 
 
 -- Personal information chat command
@@ -1101,6 +1259,20 @@ core.register_chatcommand('mymilk', {
         end
     end
 })
+core.register_chatcommand('mypregnancy', {
+    params = 'name',
+    description = S('Show own pregnancy value'),
+    privs = { interact = true },
+    func = function (caller)
+        local player_preggo = f.get_data(caller, a.preggo_value)
+        local preggo_disabled = f.preggo_disabled(caller)
+        if preggo_disabled then
+            chat_send(caller, S('Your pregnancy is disabled'))
+        else
+            chat_send(caller, S('Your pregnancy value is @1', player_preggo))
+        end
+    end
+})
 
 
 core.register_chatcommand('defecate', {
@@ -1142,6 +1314,7 @@ core.register_chatcommand('lactate', {
 		f.lactate(caller, nil, 'milked')
 	end,
 })
+-- TODO impregantion and birthing commands
 
 
 -- TODO allow sleep without bed? i.e., may cause injury in general, and also temperature damage

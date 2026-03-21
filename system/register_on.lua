@@ -16,10 +16,11 @@ local costs = hunger_ng.costs
 local digest_interval           = hunger_ng.settings.timers.digest
 local hydrate_interval          = hunger_ng.settings.timers.hydrate
 local lactate_interval          = hunger_ng.settings.timers.lactate
+local procreate_interval        = hunger_ng.settings.timers.procreate
 
 -- Localize Luanti
 local chat_send = core.chat_send_player -- monkey-patch ?
-local core_log = core.log
+local core_log  = core.log
 
 
 -- When a player digs or places a node the corresponding hunger alteration
@@ -35,7 +36,8 @@ core.register_on_dignode(function(p, on, digger)
   f.alter_sleep (playername, -costs.dig, 'digging')
   f.alter_thirst(playername, -costs.dig, 'digging')
   f.alter_pee   (playername,  costs.dig, 'digging')
-  f.alter_milk  (playername,  costs.dig, 'digging')
+  --f.alter_milk  (playername,  costs.dig, 'digging')
+  --f.alter_preggo(playername,  costs.dig, 'digging')
 end)
 core.register_on_placenode(function(p, nn, placer, on, is, pt)
   if not placer then
@@ -48,7 +50,8 @@ core.register_on_placenode(function(p, nn, placer, on, is, pt)
   f.alter_sleep (playername, -costs.place, 'placing')
   f.alter_thirst(playername, -costs.place, 'placing')
   f.alter_pee   (playername,  costs.place, 'placing')
-  f.alter_milk  (playername,  costs.place, 'placing')
+  --f.alter_milk  (playername,  costs.place, 'placing')
+  --f.alter_preggo(playername,  costs.place, 'placing')
 end)
 
 -- TODO persistence ?
@@ -67,6 +70,7 @@ f.on_dieplayer = function(player)
   f.alter_thirst(playername, -s.thirst.maximum, 'death')
   f.alter_pee   (playername, -s.pee   .maximum, 'death')
   f.alter_milk  (playername, -s.milk  .maximum, 'death')
+  f.alter_preggo(playername, -s.preggo.maximum, 'death')
   return true
 end
 core.register_on_dieplayer(f.on_dieplayer)
@@ -81,6 +85,7 @@ f.on_respawnplayer = function(player)
   f.alter_thirst(playername, s.thirst.start_with, 'respawn')
   f.alter_pee   (playername, s.pee   .start_with, 'respawn')
   f.alter_milk  (playername, s.milk  .start_with, 'respawn')
+  f.alter_preggo(playername, s.preggo.start_with, 'respawn')
 end
 core.register_on_respawnplayer(f.on_respawnplayer)
 
@@ -114,12 +119,14 @@ core.register_on_item_eat(function(hpc, rwi, itemstack, user, pt)
   local current_thirst  = f.get_data(player_name, a.thirst_value)
   local current_pee     = f.get_data(player_name, a.pee_value)
   local current_milk    = f.get_data(player_name, a.milk_value)
+  local current_preggo  = f.get_data(player_name, a.preggo_value)
   local hunger_disabled = f.get_data(player_name, a.hunger_disabled)
   local poop_disabled   = f.get_data(player_name, a.poop_disabled)
   local sleep_disabled  = f.get_data(player_name, a.sleep_disabled)
   local thirst_disabled = f.get_data(player_name, a.thirst_disabled)
   local pee_disabled    = f.get_data(player_name, a.pee_disabled)
   local milk_disabled   = f.get_data(player_name, a.milk_disabled)
+  local preggo_disabled = f.get_data(player_name, a.preggo_disabled)
   local item_sound = definition.sound or {}
   local eating_sound = item_sound.eat or 'hunger_ng_eat'
 
@@ -207,6 +214,7 @@ core.register_on_item_eat(function(hpc, rwi, itemstack, user, pt)
   f.alter_thirst   (player_name,  quenches, 'eating')
   f.alter_pee_soon (player_name,  hydrates, 'eating', hydrate_interval)
   f.alter_milk_soon(player_name, -weens,    'eating', lactate_interval)
+  --f.alter_preggo_soon(player_name, weens,    'eating', lactate_interval)
   itemstack:take_item(1)
 
   if hunger_def.returns then
@@ -237,14 +245,16 @@ f.on_joinplayer = function(player)
   local unset_t     = not f.get_data(player_name, a.thirst_value)
   local unset_pee   = not f.get_data(player_name, a.pee_value)
   local unset_milk  = not f.get_data(player_name, a.milk_value)
-  local unset       = unset_h or unset_poo or unset_s or unset_t or unset_pee or unset_milk
+  local unset_preggo= not f.get_data(player_name, a.preggo_value)
+  local unset       = unset_h or unset_poo or unset_s or unset_t or unset_pee or unset_milk or unset_preggo
   local reset_h     = f.get_data(player_name, a.hunger_value) and not s.hunger.persistent
   local reset_poo   = f.get_data(player_name, a.poop_value)   and not s.poop.persistent
   local reset_s     = f.get_data(player_name, a.sleep_value)  and not s.sleep.persistent
   local reset_t     = f.get_data(player_name, a.thirst_value) and not s.thirst.persistent
   local reset_pee   = f.get_data(player_name, a.pee_value)    and not s.pee.persistent
   local reset_milk  = f.get_data(player_name, a.milk_value)    and not s.milk.persistent
-  local reset       = reset_h or reset_poo or reset_s or reset_t or reset_pee or reset_milk
+  local reset_preggo= f.get_data(player_name, a.preggo_value)    and not s.preggo.persistent
+  local reset       = reset_h or reset_poo or reset_s or reset_t or reset_pee or reset_milk or reset_preggo
 
   --minetest.log('hunger_ng.on_joinplayer('..player_name..') unset: '..tostring(unset))
   --minetest.log('hunger_ng.on_joinplayer('..player_name..') reset: '..tostring(reset))
@@ -274,6 +284,9 @@ f.on_joinplayer = function(player)
     f.set_data(player_name, a.milk_value,          s.milk.start_with)
     f.set_data(player_name, a.milking_timestamp,   0)
     f.set_data(player_name, a.milk_disabled,       0)
+    f.set_data(player_name, a.preggo_value,        s.preggo.start_with)
+    f.set_data(player_name, a.preggo_timestamp,    0)
+    f.set_data(player_name, a.preggo_disabled,     0)
   end
 
   --minetest.log('hunger_ng.on_joinplayer('..player_name..') hunger value: '..tostring(f.get_data(player_name, a.hunger_value)))
@@ -285,12 +298,14 @@ f.on_joinplayer = function(player)
   assert(s.thirst.start_with ~= false)
   assert(s.pee   .start_with ~= false)
   assert(s.milk  .start_with ~= false)
+  assert(s.preggo.start_with ~= false)
   assert(f.get_data(player_name, a.hunger_value) ~= false)
   assert(f.get_data(player_name, a.poop_value)   ~= false)
   assert(f.get_data(player_name, a.sleep_value)  ~= false)
   assert(f.get_data(player_name, a.thirst_value) ~= false)
   assert(f.get_data(player_name, a.pee_value)    ~= false)
   assert(f.get_data(player_name, a.milk_value)   ~= false)
+  assert(f.get_data(player_name, a.preggo_value) ~= false)
 
   -- Always reset (enable) hunger effect settings
   f.set_data(player_name, a.effect_hunger, 'enabled')
@@ -301,6 +316,7 @@ f.on_joinplayer = function(player)
   f.set_data(player_name, a.effect_dehydrate, 'enabled')
   f.set_data(player_name, a.effect_hydrate,   'enabled')
   f.set_data(player_name, a.effect_lactate,   'enabled')
+  f.set_data(player_name, a.effect_procreate, 'enabled')
 
   -- TODO instead of always hiding when awash, can move all of these up when awash but holding airtank equipment ?
   -- Only set hunger bar ID if hunger bar is configured to be used
@@ -409,6 +425,24 @@ f.on_joinplayer = function(player)
     })
     if milk_hud ~= nil then
       f.set_data(player_name, a.milk_bar_id, milk_hud)
+    end
+  end
+
+  if s.preggo_bar.use then -- milk
+    --minetest.log('using milk bar')
+    assert(hunger_ng.preggo_bar_image ~= nil)
+    assert(f.get_data(player_name, a.preggo_value) ~= nil)
+    local preggo_hud   = player:hud_add({
+      type = 'statbar',
+      position = { x=0.5, y=0.88 },
+      text = hunger_ng.preggo_bar_image,
+      direction = 0,
+      number = f.get_data(player_name, a.preggo_value),
+      size = { x=24, y=24 },
+      offset = {x=25,y=-(48+24+16)},
+    })
+    if preggo_hud ~= nil then
+      f.set_data(player_name, a.preggo_bar_id, preggo_hud)
     end
   end
 end

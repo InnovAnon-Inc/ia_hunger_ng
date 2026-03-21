@@ -160,6 +160,12 @@ hunger_ng = {
 	milk_disabled      = 'hunger_ng:milk_disabled',
 	effect_lactate     = 'hunger_ng:effect_lactate',
 
+	preggo_bar_id        = 'hunger_ng:preggo_bar_id',
+	preggo_value         = 'hunger_ng:preggo_value',
+	preggo_timestamp     = 'hunger_ng:preggo_timestamp',
+	preggo_disabled      = 'hunger_ng:preggo_disabled',
+	effect_procreate     = 'hunger_ng:effect_procreate',
+
 --	heat_bar_id         = 'hunger_ng:heat_bar_id',
 --	heat_value          = 'hunger_ng:heat_value',
 --	heating_timestamp   = 'hunger_ng:heating_timestamp',
@@ -183,13 +189,14 @@ hunger_ng = {
             basal_metabolism = tonumber(get('timer_basal_metabolism', 60)),
             movement = tonumber(get('timer_movement', 0.5)),
 
-	    digest  = tonumber(get('timer_digest',   3)),
-	    --sleep  = tonumber(get('timer_sleep',  60*60*4)),
-	    sleep   = tonumber(get('timer_sleep',   60)),
-	    thirst  = tonumber(get('timer_thirst',  60)),
-	    hydrate = tonumber(get('timer_digest',   3)), -- TODO faster (realistic)
---	    heat   = tonumber(get('timer_heat',     0.5)),
-	    lactate = tonumber(get('timer_digest',   3)), -- TODO (realistic)
+	    digest    = tonumber(get('timer_digest',   3)),
+	    --sleep   = tonumber(get('timer_sleep',  60*60*4)),
+	    sleep     = tonumber(get('timer_sleep',   60)),
+	    thirst    = tonumber(get('timer_thirst',  60)),
+	    hydrate   = tonumber(get('timer_digest',   3)), -- TODO faster (realistic)
+--	    heat      = tonumber(get('timer_heat',     0.5)),
+	    lactate   = tonumber(get('timer_digest',   3)), -- TODO (realistic)
+	    procreate = tonumber(get('timer_digest',   3)), -- TODO (realistic)
         },
         hunger = {
             timeout = tonumber(get('hunger_timeout', 0)),
@@ -254,6 +261,17 @@ hunger_ng = {
             start_with          = tonumber(   get('milk_start_with',  1)),
             maximum             = tonumber(   get('milk_maximum',    20)),
         },
+        preggo_bar= {
+            image               =             get('preggo_bar_image',      'bones_front.png'), -- TODO
+            use                 = core.is_yes(get('use_preggo_bar',        true)),
+            force_builtin_image =             get('force_builtin_image', false),
+        },
+        preggo    = {
+            timeout             = tonumber(   get('preggo_timeout',     0)),
+            persistent          = core.is_yes(get('preggo_persistent', true)),
+            start_with          = tonumber(   get('preggo_start_with',  1)),
+            maximum             = tonumber(   get('preggo_maximum',    20)),
+        },
 --	heat_bar   = {
 --	    image               =             get('heat_bar_image',      ...), -- TODO
 --	    use                 = core.is_yes(get('use_heat_bar',        true)),
@@ -296,12 +314,17 @@ hunger_ng = {
 	hydrate    = {
             above  = tonumber(   get('pee_above', 19)),
             amount = tonumber(   get('pee_amount', 1)),
-            below  = tonumber(   get('pee_below',  1)), -- minimum amount to make a droplet
+            below  = tonumber(   get('pee_below',  5)), -- minimum amount to make a droplet
 	},
 	lactate    = {
             above  = tonumber(   get('milk_above', 19)),
             amount = tonumber(   get('milk_amount', 1)),
-            below  = tonumber(   get('milk_below',  1)), -- minimum amount to make a droplet
+            below  = tonumber(   get('milk_below',  5)), -- minimum amount to make a droplet
+	},
+	procreate  = {
+            above  = tonumber(   get('preggo_above', 19)),
+            amount = tonumber(   get('preggo_amount', 1)),
+            below  = tonumber(   get('preggo_below', 15)), -- minimum amount to make a baby
 	},
 --        heat       = {
 --            below  = tonumber(   get('heat_below',   0)),
@@ -346,12 +369,14 @@ local api_functions = {
     alter_thirst     = hunger_ng.functions.alter_thirst,
     alter_pee        = hunger_ng.functions.alter_pee,
     alter_milk       = hunger_ng.functions.alter_milk,
+    alter_preggo     = hunger_ng.functions.alter_preggo,
     configure_hunger = hunger_ng.functions.configure_hunger,
     configure_poop   = hunger_ng.functions.configure_poop,
     configure_sleep  = hunger_ng.functions.configure_sleep,
     configure_thirst = hunger_ng.functions.configure_thirst,
     configure_pee    = hunger_ng.functions.configure_pee,
     configure_milk   = hunger_ng.functions.configure_milk,
+    configure_preggo = hunger_ng.functions.configure_preggo,
     set_effect = hunger_ng.set_effect,
     get_hunger_information = hunger_ng.functions.get_hunger_information,
     --get_poop_information = hunger_ng.functions.get_poop_information,
@@ -361,9 +386,11 @@ local api_functions = {
     thirst_bar_image = hunger_ng.settings.thirst_bar.image,
     pee_bar_image    = hunger_ng.settings.pee_bar.image,
     milk_bar_image   = hunger_ng.settings.milk_bar.image,
+    preggo_bar_image = hunger_ng.settings.preggo_bar.image,
     poop_maximum     = hunger_ng.settings.poop.maximum,
     pee_maximum      = hunger_ng.settings.pee.maximum,
     milk_maximum     = hunger_ng.settings.milk.maximum,
+    preggo_maximum   = hunger_ng.settings.preggo.maximum,
     on_joinplayer    = hunger_ng.functions.on_joinplayer,
     on_dieplayer     = hunger_ng.functions.on_dieplayer,
     on_leaveplayer   = hunger_ng.functions.on_leaveplayer,
